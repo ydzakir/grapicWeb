@@ -1,0 +1,50 @@
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
+import jwt
+from passlib.context import CryptContext
+
+from core.config import settings
+
+# Password hashing context (Argon2 default, bcrypt fallback)
+pwd_context = CryptContext(schemes=["argon2", "bcrypt"], deprecated="auto")
+
+ALGORITHM = "HS256"
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a plain password against an adaptive hash."""
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+def get_password_hash(password: str) -> str:
+    """Generate a strong adaptive hash for a password."""
+    return pwd_context.hash(password)
+
+
+def create_access_token(
+    subject: str | Any, role: str, expires_delta: timedelta | None = None
+) -> str:
+    """Create a signed JWT access token containing user identity and role."""
+    if expires_delta:
+        expire = datetime.now(UTC) + expires_delta
+    else:
+        expire = datetime.now(UTC) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+
+    to_encode = {
+        "sub": str(subject),
+        "role": role,
+        "exp": expire,
+        "iat": datetime.now(UTC),
+    }
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+
+def decode_access_token(token: str) -> dict[str, Any] | None:
+    """Decode and validate a JWT access token."""
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except jwt.PyJWTError:
+        return None

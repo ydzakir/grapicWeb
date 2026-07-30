@@ -1,0 +1,148 @@
+networks:
+  internal_network:
+    driver: bridge
+    internal: true
+  public_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  prometheus_data:
+    driver: local
+
+services:
+  postgres:
+    image: postgres:16.3-alpine
+    container_name: infra_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-monitoring_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_this_in_production_secure_pass_123}
+      POSTGRES_DB: ${POSTGRES_DB:-monitoring_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-monitoring_admin} -d ${POSTGRES_DB:-monitoring_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: infra_prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=90d'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - internal_network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: infra-monitoring-backend:0.1.0
+    container_name: infra_backend
+    environment:
+      POSTGRES_SERVER: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-monitoring_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_this_in_production_secure_pass_123}
+      POSTGRES_DB: ${POSTGRES_DB:-monitoring_db}
+      SECRET_KEY: ${SECRET_KEY:-change_this_to_a_secure_random_64_char_string_for_production}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      PROMETHEUS_URL: http://prometheus:9090
+    networks:
+      - internal_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  collector-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: infra-monitoring-worker:0.1.0
+    container_name: infra_collector_worker
+    command: ["python", "src/worker.py"]
+    environment:
+      POSTGRES_SERVER: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-monitoring_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_this_in_production_secure_pass_123}
+      POSTGRES_DB: ${POSTGRES_DB:-monitoring_db}
+      SECRET_KEY: ${SECRET_KEY:-change_this_to_a_secure_random_64_char_string_for_production}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+    networks:
+      - internal_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "test", "-f", "/tmp/worker_heartbeat"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: infra-monitoring-frontend:0.1.0
+    container_name: infra_frontend
+    networks:
+      - internal_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+  reverse-proxy:
+    image: nginx:1.25.5-alpine
+    container_name: infra_reverse_proxy
+    ports:
+      - "80:80"
+    volumes:
+      - ./deploy/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - public_network
+      - internal_network
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped

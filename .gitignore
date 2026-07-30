@@ -1,0 +1,36 @@
+# Environments & Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# Node / Frontend
+node_modules/
+frontend/dist/
+frontend/coverage/
+.vitest/
+playwright-report/
+test-results/
+
+# Docker & Local Secrets
+.env
+*.pem
+*.key
+*.crt
+secrets/
+!.env.example
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
