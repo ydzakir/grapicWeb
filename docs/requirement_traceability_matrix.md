@@ -58,10 +58,14 @@ Matriks penelusuran kebutuhan (*Requirement Traceability Matrix*) untuk proyek *
 | **REQ-V12-06** | Animated Traffic Flow for Verified Active Edges | V1.2 | `IMPLEMENTED_VERIFIED` | `frontend/src/index.css` |
 | **REQ-V12-07** | Animation Toggle & `prefers-reduced-motion` Compliance | V1.2 | `IMPLEMENTED_VERIFIED` | `frontend/src/pages/TopologyPage.tsx` |
 
+| **REQ-V20-SP03-01** | PDF Executive Summary Report Generator (`ReportLab`) | V2.0 (SP3) | `IMPLEMENTED_VERIFIED` | `backend/tests/test_report_service.py` PASS |
+| **REQ-V20-SP03-02** | Excel Workbook Report Generator (`openpyxl`) | V2.0 (SP3) | `IMPLEMENTED_VERIFIED` | `backend/tests/test_report_service.py` PASS |
+| **REQ-V20-SP03-03** | Report REST API Generate & File Download | V2.0 (SP3) | `IMPLEMENTED_VERIFIED` | `backend/src/api/v1/reports.py` PASS |
+
 ---
 
-## Ringkasan Verifikasi Final V1.2
-- Total Requirements: **50**
-- Implemented & Verified: **47 (94.0%)**
-- Deferred to Roadmap: **3 (6.0%)**
+## Ringkasan Verifikasi Final V2.0 (Subproyek 3)
+- Total Requirements: **53**
+- Implemented & Verified: **50 (94.3%)**
+- Deferred to Roadmap: **3 (5.7%)**
 - Out of Scope: **0**

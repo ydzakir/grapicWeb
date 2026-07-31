@@ -11,11 +11,16 @@ import {
   AlertCircle,
   ShieldAlert,
   Check,
+  FileText,
+  Download,
 } from 'lucide-react';
 
 export const AdministrationPage: React.FC = () => {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'collectors' | 'datacenters' | 'pending'>('collectors');
+  const [activeTab, setActiveTab] = useState<'collectors' | 'datacenters' | 'pending' | 'reports'>('collectors');
+  const [reportType, setReportType] = useState<'weekly' | 'monthly'>('weekly');
+  const [reportFormat, setReportFormat] = useState<'pdf' | 'excel'>('pdf');
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
   // Collector Targets State
   const [isAddTargetModalOpen, setIsAddTargetModalOpen] = useState(false);
@@ -140,6 +145,28 @@ export const AdministrationPage: React.FC = () => {
     assignHostsMutation.mutate({ dcId: assignDcId, hostIds: selectedHostIds });
   };
 
+  const handleGenerateReport = async () => {
+    setIsGeneratingReport(true);
+    try {
+      const res = await apiClient.post<{ filename: string; download_url: string }>('/reports/generate', {
+        report_type: reportType,
+        format: reportFormat,
+      });
+
+      // Trigger automatic file download
+      const link = document.createElement('a');
+      link.href = res.download_url;
+      link.setAttribute('download', res.filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      alert('Failed to generate report.');
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
   return (
     <div className="page-container">
       <header className="page-header">
@@ -170,6 +197,13 @@ export const AdministrationPage: React.FC = () => {
           onClick={() => setActiveTab('pending')}
         >
           <ShieldAlert className="tab-icon" /> Pending Approvals Queue
+        </button>
+
+        <button
+          className={`tab-btn ${activeTab === 'reports' ? 'active' : ''}`}
+          onClick={() => setActiveTab('reports')}
+        >
+          <FileText className="tab-icon" /> Executive Reports
         </button>
       </div>
 
@@ -332,6 +366,54 @@ export const AdministrationPage: React.FC = () => {
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Tab 4: Executive Reports */}
+      {activeTab === 'reports' && (
+        <div className="tab-content">
+          <div className="tab-header">
+            <h3>Generate Executive Reports</h3>
+          </div>
+
+          <div className="target-card report-generator-card">
+            <div className="card-header">
+              <h4>Periodic Infrastructure Summary Report</h4>
+            </div>
+            <div className="card-body">
+              <p className="card-desc">
+                Generate formatted PDF or Excel executive reports summarizing SLA availability, asset inventory, and recent alert incident history.
+              </p>
+
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Report Time Period</label>
+                  <select value={reportType} onChange={(e) => setReportType(e.target.value as any)}>
+                    <option value="weekly">Weekly Recap Report (Last 7 Days)</option>
+                    <option value="monthly">Monthly Executive Report (Last 30 Days)</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Export File Format</label>
+                  <select value={reportFormat} onChange={(e) => setReportFormat(e.target.value as any)}>
+                    <option value="pdf">PDF Document (.pdf)</option>
+                    <option value="excel">Excel Workbook (.xlsx)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className="card-footer">
+              <button
+                onClick={handleGenerateReport}
+                className="btn-primary"
+                disabled={isGeneratingReport}
+              >
+                <Download className="btn-icon" />
+                {isGeneratingReport ? 'Generating Report...' : 'Generate & Download Report'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
