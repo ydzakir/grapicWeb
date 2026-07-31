@@ -60,54 +60,54 @@ Tracking status and stage gates for Modules 0 to 8 of the Infrastructure Monitor
 - [x] Pastikan log terstruktur tidak memuat command output sensitif atau credential
 - [x] Tambahkan test untuk CRUD/authorization collector target, test connection, normalisasi, timeout, retry limit, concurrency bound, idempotency key, pending review, unknown/down transition, recovery, dan invalid interval
 
-### [ ] Modul 4 - Inventory Service dan Topology Builder
-- [ ] Implement normalized inventory upsert (idempotent, single canonical host node per machine)
-- [ ] Implement relationship inference (Data Center -> Host -> VM / Container)
-- [ ] Implement host naming validation on approval (`[TYPE]-[LOKASI]-[FUNGSI]-[NOMOR]`)
-- [ ] Implement container display name formatting (`<docker-host>/<container-name>`)
-- [ ] Implement Nodes API (`GET /api/v1/nodes` with search, type/status/review_status filter, pagination)
-- [ ] Implement Node Detail & Children API (`GET /api/v1/nodes/{id}`, `GET /api/v1/nodes/{id}/children`)
-- [ ] Implement Admin Approval / Rejection API (`POST /api/v1/nodes/{id}/approve`, `/reject`)
-- [ ] Implement Data Center grouping CRUD and host assignment
-- [ ] Implement Topology Builder Engine (JSON graph, cycle protection, default approved-only view)
-- [ ] Implement lifecycle retention (`archived` 90 days before eligible deletion)
-- [ ] Implement topology changelog/event tracking
+### [x] Modul 4 - Inventory Service dan Topology Builder
+- [x] Implement normalized inventory upsert (idempotent, single canonical host node per machine)
+- [x] Implement relationship inference (Data Center -> Host -> VM / Container)
+- [x] Implement host naming validation on approval (`[TYPE]-[LOKASI]-[FUNGSI]-[NOMOR]`)
+- [x] Implement container display name formatting (`<docker-host>/<container-name>`)
+- [x] Implement Nodes API (`GET /api/v1/nodes` with search, type/status/review_status filter, pagination)
+- [x] Implement Node Detail & Children API (`GET /api/v1/nodes/{id}`, `GET /api/v1/nodes/{id}/children`)
+- [x] Implement Admin Approval / Rejection API (`POST /api/v1/nodes/{id}/approve`, `/reject`)
+- [x] Implement Data Center grouping CRUD and host assignment
+- [x] Implement Topology Builder Engine (JSON graph, cycle protection, default approved-only view)
+- [x] Implement lifecycle retention (`archived` 90 days before eligible deletion)
+- [x] Implement topology changelog/event tracking
 
-### [ ] Modul 5 - Prometheus Metrics dan Live Status
-- [ ] Implement Prometheus pull model (worker exposes internal `/metrics` endpoint)
-- [ ] Configure Prometheus retention (min 90 days) and stale-series cleanup
-- [ ] Implement backend Prometheus query service (timeout, error mapping, allowlisted metrics/ranges)
-- [ ] Implement Metrics API (`GET /api/v1/metrics?node_id=&range=`)
-- [ ] Implement WebSocket endpoint (`WS /ws/status`) with auth & status delta schema
-- [ ] Create tests for metric querying, stale-series cleanup, and WebSocket delta delivery
+### [x] Modul 5 - Prometheus Metrics dan Live Status
+- [x] Implement Prometheus pull model (worker exposes internal `/metrics` endpoint)
+- [x] Configure Prometheus retention (min 90 days) and stale-series cleanup
+- [x] Implement backend Prometheus query service (timeout, error mapping, allowlisted metrics/ranges)
+- [x] Implement Metrics API (`GET /api/v1/metrics?node_id=&range=`)
+- [x] Implement WebSocket endpoint (`WS /ws/status`) with auth & status delta schema
+- [x] Create tests for metric querying, stale-series cleanup, and WebSocket delta delivery
 
-### [ ] Modul 6 - Frontend Dashboard, Inventory, dan Topology
-- [ ] Implement UI Auth flow, session handling, and route protection
-- [ ] Implement Role-Based UI rendering (Admin vs Operator vs Viewer)
-- [ ] Implement Administration view (Collector target CRUD, test connection, DC management)
-- [ ] Implement Dashboard page (Total servers/containers, unhealthy nodes, mini topology)
-- [ ] Implement Inventory page (Table, pagination, search, status/type filters, approval action)
-- [ ] Implement Topology canvas using React Flow + Dagre auto-layout (pan, zoom, fit view, node status colors & icons)
-- [ ] Implement Node Detail side panel with current/basic Recharts time-series
-- [ ] Connect WebSocket status delta to React Flow graph state (no full graph refetch)
-- [ ] Implement responsive layout, keyboard navigation, high-contrast, and `prefers-reduced-motion` support
-- [ ] Write component tests & Playwright E2E smoke tests
+### [x] Modul 6 - Frontend Dashboard, Inventory, dan Topology
+- [x] Implement UI Auth flow, session handling, and route protection
+- [x] Implement Role-Based UI rendering (Admin vs Operator vs Viewer)
+- [x] Implement Administration view (Collector target CRUD, test connection, DC management)
+- [x] Implement Dashboard page (Total servers/containers, unhealthy nodes, mini topology)
+- [x] Implement Inventory page (Table, pagination, search, status/type filters, approval action)
+- [x] Implement Topology canvas using React Flow + Dagre auto-layout (pan, zoom, fit view, node status colors & icons)
+- [x] Implement Node Detail side panel with current/basic Recharts time-series
+- [x] Connect WebSocket status delta to React Flow graph state (no full graph refetch)
+- [x] Implement responsive layout, keyboard navigation, high-contrast, and `prefers-reduced-motion` support
+- [x] Write component tests & Playwright E2E smoke tests
 
-### [ ] Modul 7 - Security, Reliability, Backup, dan Scale Validation
-- [ ] Conduct repository, image context, and log audit for plain secrets
-- [ ] Audit CORS, security headers, cookie flags, and non-root Docker execution
-- [ ] Validate graceful shutdown and DB/Prometheus outage recovery behavior
-- [ ] Create scale benchmark dataset (50 servers/VMs, 200+ containers) and test API response times
-- [ ] Implement daily PostgreSQL backup script & disposable DB restore test
-- [ ] Document external uptime checker and Prometheus retention guidelines
-- [ ] Run security dependency/image scanning and remediate high/critical issues
+### [x] Modul 7 - Security, Reliability, Backup, dan Scale Validation
+- [x] Conduct repository, image context, and log audit for plain secrets
+- [x] Audit CORS, security headers, cookie flags, and non-root Docker execution
+- [x] Validate graceful shutdown and DB/Prometheus outage recovery behavior
+- [x] Create scale benchmark dataset (50 servers/VMs, 200+ containers) and test API response times
+- [x] Implement daily PostgreSQL backup script & disposable DB restore test
+- [x] Document external uptime checker and Prometheus retention guidelines
+- [x] Run security dependency/image scanning and remediate high/critical issues
 
-### [ ] Modul 8 - End-to-End Acceptance dan Handover
-- [ ] Run full clean-environment stack deploy via Docker Compose
-- [ ] Execute DB migrations on fresh database & bootstrap admin user
-- [ ] Enable demo seed data explicitly
-- [ ] Execute full backend test suite, frontend unit tests, and Playwright E2E tests
-- [ ] Verify fake collector multi-run idempotency & status transition simulation
-- [ ] Verify stack restart without data loss
-- [ ] Complete final operational & technical documentation (Deployment, TLS, Secret provisioning, Onboarding, Backup/Restore, Troubleshooting)
-- [ ] Update Requirement Traceability Matrix to final verified status
+### [x] Modul 8 - End-to-End Acceptance dan Handover
+- [x] Run full clean-environment stack deploy via Docker Compose
+- [x] Execute DB migrations on fresh database & bootstrap admin user
+- [x] Enable demo seed data explicitly
+- [x] Execute full backend test suite, frontend unit tests, and Playwright E2E tests
+- [x] Verify fake collector multi-run idempotency & status transition simulation
+- [x] Verify stack restart without data loss
+- [x] Complete final operational & technical documentation (Deployment, TLS, Secret provisioning, Onboarding, Backup/Restore, Troubleshooting)
+- [x] Update Requirement Traceability Matrix to final verified status

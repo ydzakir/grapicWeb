@@ -29,6 +29,11 @@ test-results/
 secrets/
 !.env.example
 
+# Local Databases & Backups
+backups/
+*.db
+*.sqlite
+
 # IDE & OS
 .vscode/
 .idea/

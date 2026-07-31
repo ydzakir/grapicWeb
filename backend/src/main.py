@@ -8,6 +8,11 @@ from fastapi.responses import JSONResponse
 
 from api.v1.auth import router as auth_router
 from api.v1.collectors import router as collectors_router
+from api.v1.datacenters import router as datacenters_router
+from api.v1.metrics import router as metrics_router
+from api.v1.nodes import router as nodes_router
+from api.v1.topology import router as topology_router
+from api.v1.ws import router as ws_router
 from core.config import settings
 from core.database import AsyncSessionLocal
 from services.auth_service import bootstrap_admin_user
@@ -43,6 +48,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
 
 # Consistent error handlers
 @app.exception_handler(HTTPException)
@@ -80,6 +95,11 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 # Register routers
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(collectors_router, prefix="/api/v1")
+app.include_router(nodes_router, prefix="/api/v1")
+app.include_router(datacenters_router, prefix="/api/v1")
+app.include_router(topology_router, prefix="/api/v1")
+app.include_router(metrics_router, prefix="/api/v1")
+app.include_router(ws_router)
 
 
 @app.get("/api/v1/health/live", status_code=status.HTTP_200_OK, tags=["Health"])
