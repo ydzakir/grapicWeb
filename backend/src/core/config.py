@@ -37,6 +37,25 @@ class Settings(BaseSettings):
 
     # External Services
     PROMETHEUS_URL: str = "http://prometheus:9090"
+    THANOS_QUERIER_URL: str = "http://thanos-querier:10902"
+
+    # High Availability & PgBouncer Settings
+    HA_MODE_ENABLED: bool = False
+    PGBOUNCER_HOST: str = "pgbouncer"
+    PGBOUNCER_PORT: int = 6432
+    PGBOUNCER_USER: str = "monitoring_admin"
+    PGBOUNCER_PASSWORD: str = "change_this_in_production_secure_pass_123"
+    PGBOUNCER_DB: str = "monitoring_db"
+
+    @property
+    def pgbouncer_async_database_url(self) -> str:
+        return f"postgresql+asyncpg://{self.PGBOUNCER_USER}:{self.PGBOUNCER_PASSWORD}@{self.PGBOUNCER_HOST}:{self.PGBOUNCER_PORT}/{self.PGBOUNCER_DB}"
+
+    @property
+    def effective_prometheus_url(self) -> str:
+        if self.HA_MODE_ENABLED:
+            return self.THANOS_QUERIER_URL
+        return self.PROMETHEUS_URL
 
     # Collector Intervals
     STATUS_POLL_INTERVAL_SECONDS: int = 60
@@ -46,3 +65,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+

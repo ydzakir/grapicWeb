@@ -66,10 +66,15 @@ Matriks penelusuran kebutuhan (*Requirement Traceability Matrix*) untuk proyek *
 | **REQ-V20-SP05-02** | Time-Travel Snapshot Comparison & Diff Engine | V2.0 (SP5) | `IMPLEMENTED_VERIFIED` | `test_topology_snapshot_save_and_diff_comparison` PASS |
 | **REQ-V20-SP05-03** | Snapshot History REST APIs & Take Snapshot Action | V2.0 (SP5) | `IMPLEMENTED_VERIFIED` | `backend/src/api/v1/topology.py` PASS |
 
+| **REQ-V20-SP09-01** | PostgreSQL Streaming Replication & PgBouncer Connection Pooling | V2.0 (SP9) | `IMPLEMENTED_VERIFIED` | `backend/tests/test_ha_dr.py` PASS |
+| **REQ-V20-SP09-02** | Prometheus HA Cluster & Thanos Querier Deduplication | V2.0 (SP9) | `IMPLEMENTED_VERIFIED` | `backend/tests/test_ha_dr.py` PASS |
+| **REQ-V20-SP09-03** | Docker Compose HA Stack & Automated DR Failover Probing | V2.0 (SP9) | `IMPLEMENTED_VERIFIED` | `deploy/scripts/dr_failover.py` PASS |
+
 ---
 
-## Ringkasan Verifikasi Final V2.0 (Subproyek 3 & 5)
-- Total Requirements: **56**
-- Implemented & Verified: **53 (94.6%)**
-- Deferred to Roadmap: **3 (5.4%)**
+## Ringkasan Verifikasi Final V2.0 (Subproyek 3, 5, & 9)
+- Total Requirements: **59**
+- Implemented & Verified: **56 (94.9%)**
+- Deferred to Roadmap: **3 (5.1%)**
 - Out of Scope: **0**
+

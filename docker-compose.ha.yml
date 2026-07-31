@@ -1,0 +1,283 @@
+networks:
+  internal_network:
+    driver: bridge
+    internal: true
+  public_network:
+    driver: bridge
+
+volumes:
+  postgres_primary_data:
+    driver: local
+  postgres_replica_data:
+    driver: local
+  prometheus_1_data:
+    driver: local
+  prometheus_2_data:
+    driver: local
+
+services:
+  postgres-primary:
+    image: postgres:16.3-alpine
+    container_name: infra_postgres_primary
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-monitoring_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_this_in_production_secure_pass_123}
+      POSTGRES_DB: ${POSTGRES_DB:-monitoring_db}
+    volumes:
+      - postgres_primary_data:/var/lib/postgresql/data
+      - ./deploy/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./deploy/postgres/init-replication.sh:/docker-entrypoint-initdb.d/init-replication.sh:ro
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    networks:
+      - internal_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-monitoring_admin} -d ${POSTGRES_DB:-monitoring_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  postgres-replica:
+    image: postgres:16.3-alpine
+    container_name: infra_postgres_replica
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-monitoring_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_this_in_production_secure_pass_123}
+      POSTGRES_DB: ${POSTGRES_DB:-monitoring_db}
+      PGUSER: replicator
+      PGPASSWORD: replicator_secure_pass_123
+    volumes:
+      - postgres_replica_data:/var/lib/postgresql/data
+      - ./deploy/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    networks:
+      - internal_network
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+    restart: unless-stopped
+
+  pgbouncer:
+    image: edoburu/pgbouncer:1.22.1
+    container_name: infra_pgbouncer
+    environment:
+      DB_USER: ${POSTGRES_USER:-monitoring_admin}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-change_this_in_production_secure_pass_123}
+      DB_HOST: postgres-primary
+      DB_NAME: ${POSTGRES_DB:-monitoring_db}
+    volumes:
+      - ./deploy/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./deploy/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+    networks:
+      - internal_network
+    ports:
+      - "6432:6432"
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "6432"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  prometheus-1:
+    image: prom/prometheus:v2.52.0
+    container_name: infra_prometheus_1
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=90d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    volumes:
+      - ./deploy/prometheus/prometheus-ha-1.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_1_data:/prometheus
+    networks:
+      - internal_network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  prometheus-2:
+    image: prom/prometheus:v2.52.0
+    container_name: infra_prometheus_2
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=90d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    volumes:
+      - ./deploy/prometheus/prometheus-ha-2.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_2_data:/prometheus
+    networks:
+      - internal_network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  thanos-querier:
+    image: thanosio/thanos:v0.35.0
+    container_name: infra_thanos_querier
+    command:
+      - 'query'
+      - '--http-address=0.0.0.0:10902'
+      - '--query.replica-label=replica'
+      - '--store=prometheus-1:9090'
+      - '--store=prometheus-2:9090'
+    networks:
+      - internal_network
+    ports:
+      - "10902:10902"
+    depends_on:
+      prometheus-1:
+        condition: service_healthy
+      prometheus-2:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:10902/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  backend-1:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: infra-monitoring-backend:0.1.0
+    container_name: infra_backend_1
+    environment:
+      HA_MODE_ENABLED: "true"
+      PGBOUNCER_HOST: pgbouncer
+      PGBOUNCER_PORT: 6432
+      POSTGRES_USER: ${POSTGRES_USER:-monitoring_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_this_in_production_secure_pass_123}
+      POSTGRES_DB: ${POSTGRES_DB:-monitoring_db}
+      SECRET_KEY: ${SECRET_KEY:-change_this_to_a_secure_random_64_char_string_for_production}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      PROMETHEUS_URL: http://thanos-querier:10902
+      THANOS_QUERIER_URL: http://thanos-querier:10902
+    networks:
+      - internal_network
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      thanos-querier:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  backend-2:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: infra-monitoring-backend:0.1.0
+    container_name: infra_backend_2
+    environment:
+      HA_MODE_ENABLED: "true"
+      PGBOUNCER_HOST: pgbouncer
+      PGBOUNCER_PORT: 6432
+      POSTGRES_USER: ${POSTGRES_USER:-monitoring_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_this_in_production_secure_pass_123}
+      POSTGRES_DB: ${POSTGRES_DB:-monitoring_db}
+      SECRET_KEY: ${SECRET_KEY:-change_this_to_a_secure_random_64_char_string_for_production}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      PROMETHEUS_URL: http://thanos-querier:10902
+      THANOS_QUERIER_URL: http://thanos-querier:10902
+    networks:
+      - internal_network
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      thanos-querier:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  collector-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: infra-monitoring-worker:0.1.0
+    container_name: infra_collector_worker
+    command: ["python", "src/worker.py"]
+    environment:
+      HA_MODE_ENABLED: "true"
+      PGBOUNCER_HOST: pgbouncer
+      PGBOUNCER_PORT: 6432
+      POSTGRES_USER: ${POSTGRES_USER:-monitoring_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_this_in_production_secure_pass_123}
+      POSTGRES_DB: ${POSTGRES_DB:-monitoring_db}
+      SECRET_KEY: ${SECRET_KEY:-change_this_to_a_secure_random_64_char_string_for_production}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+    networks:
+      - internal_network
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "test", "-f", "/tmp/worker_heartbeat"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: infra-monitoring-frontend:0.1.0
+    container_name: infra_frontend
+    networks:
+      - internal_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+  reverse-proxy:
+    image: nginx:1.25.5-alpine
+    container_name: infra_reverse_proxy
+    ports:
+      - "80:80"
+    volumes:
+      - ./deploy/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - public_network
+      - internal_network
+    depends_on:
+      backend-1:
+        condition: service_healthy
+      backend-2:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
