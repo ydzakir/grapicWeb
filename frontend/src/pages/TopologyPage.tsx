@@ -111,13 +111,15 @@ const getLayoutedElements = (nodes: FlowNode[], edges: FlowEdge[], direction = '
 
 export const TopologyPage: React.FC = () => {
   const [includePending, setIncludePending] = useState(false);
+  const [topoMode, setTopoMode] = useState<'hierarchy' | 'network'>('hierarchy');
+  const [animationsEnabled, setAnimationsEnabled] = useState(true);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<'1h' | '24h' | '7d' | '30d'>('1h');
 
-  // Fetch Topology Graph
+  // Fetch Topology Graph with Mode Support
   const { data: topologyData, isLoading, isError, refetch } = useQuery<TopologyGraph>({
-    queryKey: ['topology', includePending],
-    queryFn: () => apiClient.get<TopologyGraph>(`/topology?include_pending=${includePending}`),
+    queryKey: ['topology', includePending, topoMode],
+    queryFn: () => apiClient.get<TopologyGraph>(`/topology?include_pending=${includePending}&mode=${topoMode}`),
   });
 
   // Fetch Selected Node Metrics
@@ -194,6 +196,32 @@ export const TopologyPage: React.FC = () => {
         </div>
 
         <div className="topology-actions">
+          {/* View Mode Switcher */}
+          <div className="btn-group">
+            <button
+              className={`btn-toggle ${topoMode === 'hierarchy' ? 'active' : ''}`}
+              onClick={() => setTopoMode('hierarchy')}
+            >
+              Hierarchy View
+            </button>
+            <button
+              className={`btn-toggle ${topoMode === 'network' ? 'active' : ''}`}
+              onClick={() => setTopoMode('network')}
+            >
+              Network View
+            </button>
+          </div>
+
+          {/* Animation Toggle */}
+          <label className="toggle-label">
+            <input
+              type="checkbox"
+              checked={animationsEnabled}
+              onChange={(e) => setAnimationsEnabled(e.target.checked)}
+            />
+            <span>Enable Animations</span>
+          </label>
+
           <label className="toggle-label">
             <input
               type="checkbox"

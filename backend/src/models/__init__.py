@@ -14,6 +14,8 @@ from models.node import (
 )
 from models.user import User, UserRole
 
+from models.network import EdgeConfidenceLevel, NetworkEdge, Subnet
+
 __all__ = [
     "Base",
     "GUID",
@@ -38,4 +40,7 @@ __all__ = [
     "AlertSeverity",
     "AlertStatus",
     "NotificationProvider",
+    "Subnet",
+    "NetworkEdge",
+    "EdgeConfidenceLevel",
 ]

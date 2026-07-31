@@ -28,10 +28,14 @@ def sanitize_metadata(metadata: dict[str, Any] | None) -> dict[str, Any]:
     return sanitized
 
 
+from models.network import NetworkEdge
+
+
 async def build_topology_graph(
     db: AsyncSession,
     include_pending: bool = False,
     scope_datacenter_id: uuid.UUID | None = None,
+    mode: str = "hierarchy",
 ) -> TopologyGraphResponse:
     """
     Build JSON topology graph with nodes and edges.
@@ -105,27 +109,31 @@ async def build_topology_graph(
                     )
                 )
 
-    # Explicit node connections from DB
-    conn_query = select(NodeConnection)
-    conn_res = await db.execute(conn_query)
-    all_connections = list(conn_res.scalars().all())
+    # Explicit Network Edge connections from DB (for Network mode & manual links)
+    net_query = select(NetworkEdge)
+    net_res = await db.execute(net_query)
+    all_net_edges = list(net_res.scalars().all())
 
-    for conn in all_connections:
-        if conn.source_node_id in node_map and conn.target_node_id in node_map:
-            source_id = str(conn.source_node_id)
-            target_id = str(conn.target_node_id)
-            conn_type = str(conn.connection_type)
+    for n_edge in all_net_edges:
+        if n_edge.source_node_id in node_map and n_edge.target_node_id in node_map:
+            source_id = str(n_edge.source_node_id)
+            target_id = str(n_edge.target_node_id)
+            conn_type = n_edge.connection_type
             edge_key = (source_id, target_id, conn_type)
 
             if edge_key not in edge_seen and source_id != target_id:
                 edge_seen.add(edge_key)
                 edges_response.append(
                     TopologyEdgeResponse(
-                        id=f"e-conn-{conn.id}",
+                        id=f"e-net-{n_edge.id}",
                         source=source_id,
                         target=target_id,
                         connection_type=conn_type,
-                        metadata=sanitize_metadata(conn.metadata_),
+                        metadata={
+                            "provenance": n_edge.provenance,
+                            "confidence": n_edge.confidence_level.value if hasattr(n_edge.confidence_level, "value") else str(n_edge.confidence_level),
+                            "has_active_traffic": n_edge.has_active_traffic,
+                        },
                     )
                 )
 

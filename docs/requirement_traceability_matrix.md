@@ -50,10 +50,18 @@ Matriks penelusuran kebutuhan (*Requirement Traceability Matrix*) untuk proyek *
 | **REQ-V11-07** | Historical Metrics Range Selector (1h, 24h, 7d, 30d) | V1.1 | `IMPLEMENTED_VERIFIED` | `frontend/src/pages/TopologyPage.tsx` |
 | **REQ-V11-08** | Alerts Active Feed, History Log, and Rules UI | V1.1 | `IMPLEMENTED_VERIFIED` | `frontend/src/pages/AlertsPage.tsx` |
 
+| **REQ-V12-01** | Network Discovery Adapters (SNMP / ARP table parser) | V1.2 | `IMPLEMENTED_VERIFIED` | `backend/tests/test_network_discovery.py` PASS |
+| **REQ-V12-02** | Edge Provenance & Confidence Rating (`high`, `medium`, `manual`) | V1.2 | `IMPLEMENTED_VERIFIED` | `backend/src/models/network.py` |
+| **REQ-V12-03** | Manual Edge Fallback API & Audit Trail | V1.2 | `IMPLEMENTED_VERIFIED` | `backend/tests/test_topology_modes.py` PASS |
+| **REQ-V12-04** | Dual Topology Modes (`mode=hierarchy` vs `mode=network`) | V1.2 | `IMPLEMENTED_VERIFIED` | `backend/tests/test_topology_modes.py` PASS |
+| **REQ-V12-05** | Status Pulse Animation on Node Status Transition | V1.2 | `IMPLEMENTED_VERIFIED` | `frontend/src/index.css` |
+| **REQ-V12-06** | Animated Traffic Flow for Verified Active Edges | V1.2 | `IMPLEMENTED_VERIFIED` | `frontend/src/index.css` |
+| **REQ-V12-07** | Animation Toggle & `prefers-reduced-motion` Compliance | V1.2 | `IMPLEMENTED_VERIFIED` | `frontend/src/pages/TopologyPage.tsx` |
+
 ---
 
-## Ringkasan Verifikasi Final V1.1
-- Total Requirements: **43**
-- Implemented & Verified: **40 (93.0%)**
-- Deferred to Roadmap: **3 (7.0%)**
+## Ringkasan Verifikasi Final V1.2
+- Total Requirements: **50**
+- Implemented & Verified: **47 (94.0%)**
+- Deferred to Roadmap: **3 (6.0%)**
 - Out of Scope: **0**
