@@ -1093,3 +1093,43 @@ Buat task artifact baru dan proposal design sebelum coding. Pecah V2 menjadi sub
 
 Untuk setiap subproyek, buat design, threat model, migration strategy, acceptance criteria, rollback plan, tests, dan Docker/deployment impact. Jangan mengimplementasikan semua subproyek dalam satu perubahan besar. Minta pengguna memilih prioritas subproyek pertama sebelum coding.
 ```
+
+---
+
+# Prompt Eksekusi Lanjutan Versi 2.0 (Subproyek Remaining)
+
+Berikut adalah panduan dan prompt eksekusi kelanjutan untuk sisa Subproyek Versi 2.0. Pengembang atau AI Agent yang melanjutkan proyek ini dapat mengeksekusi subproyek sesuai urutan atau pilihan pengguna berikut:
+
+### Status Subproyek Versi 2.0 Terkini:
+- [x] **Subproyek 3**: Laporan Mingguan/Bulanan PDF & Excel Generator (**SELESAI & TERUJI 100%**)
+- [x] **Subproyek 5**: Topology History & Time-Travel Change Comparison (**SELESAI & TERUJI 100%**)
+- [ ] **Subproyek 1**: Advanced User Management & Granular RBAC
+- [ ] **Subproyek 2**: Enterprise SSO & LDAP / OIDC Authentication
+- [ ] **Subproyek 4**: Scheduled Automated Report Email Delivery
+- [ ] **Subproyek 6**: Cloudflare Edge Status Integration
+- [ ] **Subproyek 7**: Ticketing System Integration (Jira / ServiceNow)
+- [ ] **Subproyek 8**: External Secrets Provider (HashiCorp Vault Integration)
+- [ ] **Subproyek 9**: High Availability & Multi-Node Disaster Recovery
+- [ ] **Subproyek 10**: Governance Workflow untuk Quarterly Review & Sign-Off Audit
+
+---
+
+## Prompt Eksekusi Kelanjutan Versi 2.0:
+
+```text
+Lanjutkan pembangunan Versi 2.0 untuk aplikasi Infrastructure Monitoring & Auto-Topology pada workspace ini.
+
+Status Saat Ini:
+- MVP (Modul 0 - 8): SELESAI & Teruji 100%
+- Versi 1.1 (Alerting Engine & Historical Range): SELESAI & Teruji 100%
+- Versi 1.2 (Advanced Topology Views & Network Discovery): SELESAI & Teruji 100%
+- Versi 2.0 Subproyek 3 (PDF & Excel Reports): SELESAI & Teruji 100%
+- Versi 2.0 Subproyek 5 (Topology History & Time-Travel Diff): SELESAI & Teruji 100%
+
+Tugas Kelanjutan:
+1. Baca docs/task_checklist_v2.0.md, docs/requirement_traceability_matrix.md, v2_proposal_design.md, dan README.md.
+2. Tanyakan kepada pengguna subproyek berikutnya dari daftar sisa V2.0 (Subproyek 1, 2, 4, 6, 7, 8, 9, 10) yang ingin diprioritaskan.
+3. Jalankan pengembangan secara modular dengan TDD (Unit tests, Integration tests, Frontend UI, Security review, dan Pytest/Vitest verification).
+4. Perbarui docs/task_checklist_v2.0.md dan docs/requirement_traceability_matrix.md setelah setiap subproyek selesai.
+5. Lakukan git commit dan push ke branch main setelah verifikasi 100% passing.
+```
