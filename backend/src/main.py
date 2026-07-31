@@ -6,6 +6,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from api.v1.alerts import router as alerts_router
 from api.v1.auth import router as auth_router
 from api.v1.collectors import router as collectors_router
 from api.v1.datacenters import router as datacenters_router
@@ -99,6 +100,7 @@ app.include_router(nodes_router, prefix="/api/v1")
 app.include_router(datacenters_router, prefix="/api/v1")
 app.include_router(topology_router, prefix="/api/v1")
 app.include_router(metrics_router, prefix="/api/v1")
+app.include_router(alerts_router, prefix="/api/v1")
 app.include_router(ws_router)
 
 

@@ -123,3 +123,29 @@ export interface StatusDeltaMessage {
   last_seen: string | null;
   timestamp: string;
 }
+
+export interface AlertItem {
+  id: string;
+  node_id: string;
+  rule_id: string | null;
+  severity: 'warning' | 'critical';
+  status: 'firing' | 'resolved' | 'acknowledged';
+  message: string;
+  triggered_at: string;
+  resolved_at: string | null;
+  acknowledged_at: string | null;
+  acknowledged_by: string | null;
+  escalated: boolean;
+}
+
+export interface AlertRuleItem {
+  id: string;
+  node_id: string | null;
+  group_name: string | null;
+  metric_name: string;
+  warning_threshold: number | null;
+  critical_threshold: number | null;
+  duration_seconds: number;
+  is_enabled: boolean;
+  created_at: string;
+}

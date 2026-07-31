@@ -8,6 +8,7 @@ import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { TopologyPage } from './pages/TopologyPage';
 import { InventoryPage } from './pages/InventoryPage';
+import { AlertsPage } from './pages/AlertsPage';
 import { AdministrationPage } from './pages/AdministrationPage';
 
 const queryClient = new QueryClient({
@@ -48,6 +49,7 @@ export default function App() {
               <Route path="/" element={<DashboardPage />} />
               <Route path="/topology" element={<TopologyPage />} />
               <Route path="/inventory" element={<InventoryPage />} />
+              <Route path="/alerts" element={<AlertsPage />} />
               <Route
                 path="/admin"
                 element={

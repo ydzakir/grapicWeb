@@ -1,4 +1,5 @@
 from core.database import Base
+from models.alert import Alert, AlertRule, AlertSeverity, AlertStatus, NotificationProvider
 from models.audit import AuditLog
 from models.base import GUID, TimestampMixin, UUIDMixin
 from models.collector import CollectorRun, CollectorRunStatus, CollectorTarget, TargetType
@@ -32,4 +33,9 @@ __all__ = [
     "TargetType",
     "CollectorRunStatus",
     "AuditLog",
+    "Alert",
+    "AlertRule",
+    "AlertSeverity",
+    "AlertStatus",
+    "NotificationProvider",
 ]

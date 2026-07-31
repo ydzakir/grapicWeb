@@ -112,22 +112,18 @@ const getLayoutedElements = (nodes: FlowNode[], edges: FlowEdge[], direction = '
 export const TopologyPage: React.FC = () => {
   const [includePending, setIncludePending] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [timeRange, setTimeRange] = useState<'1h' | '24h' | '7d' | '30d'>('1h');
 
-  // Fetch Topology Graph Data
-  const {
-    data: topologyData,
-    isLoading,
-    isError,
-    refetch,
-  } = useQuery<TopologyGraph>({
+  // Fetch Topology Graph
+  const { data: topologyData, isLoading, isError, refetch } = useQuery<TopologyGraph>({
     queryKey: ['topology', includePending],
     queryFn: () => apiClient.get<TopologyGraph>(`/topology?include_pending=${includePending}`),
   });
 
-  // Fetch metrics when node selected
+  // Fetch Selected Node Metrics
   const { data: metricsData, isLoading: isLoadingMetrics } = useQuery<MetricSeries>({
-    queryKey: ['metrics', selectedNodeId],
-    queryFn: () => apiClient.get<MetricSeries>(`/metrics?node_id=${selectedNodeId}&metric_name=cpu_usage&range=1h`),
+    queryKey: ['metrics', selectedNodeId, timeRange],
+    queryFn: () => apiClient.get<MetricSeries>(`/metrics?node_id=${selectedNodeId}&metric_name=cpu_usage&range=${timeRange}`),
     enabled: !!selectedNodeId,
   });
 
@@ -303,7 +299,20 @@ export const TopologyPage: React.FC = () => {
 
               {/* Time-Series Chart */}
               <div className="detail-section">
-                <h5>CPU Usage (Last 1 Hour)</h5>
+                <div className="range-header">
+                  <h5>CPU Usage History</h5>
+                  <div className="range-btn-group">
+                    {(['1h', '24h', '7d', '30d'] as const).map((r) => (
+                      <button
+                        key={r}
+                        className={`range-btn ${timeRange === r ? 'active' : ''}`}
+                        onClick={() => setTimeRange(r)}
+                      >
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div className="chart-wrapper">
                   {isLoadingMetrics ? (
                     <div className="chart-loading">Loading metrics...</div>

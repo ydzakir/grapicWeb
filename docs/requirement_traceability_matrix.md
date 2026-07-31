@@ -41,14 +41,19 @@ Matriks penelusuran kebutuhan (*Requirement Traceability Matrix*) untuk proyek *
 | **REQ-M7-03** | Scale benchmark (50 hosts + 200 containers = 250+ nodes) | Modul 7 | `IMPLEMENTED_VERIFIED` | `backend/tests/test_scale_benchmark.py` PASS |
 | **REQ-M7-04** | Automated PostgreSQL daily backup & disposable restore test | Modul 7 | `IMPLEMENTED_VERIFIED` | `backend/tests/test_backup_restore.py` PASS |
 | **REQ-M7-05** | Operations guide & external uptime checking documentation | Modul 7 | `IMPLEMENTED_VERIFIED` | `docs/Operations_Backup_Monitoring.md` |
-| **REQ-RM-01** | Multi-Prometheus HA cluster & Thanos 1-year downsampling | Roadmap | `DEFERRED_TO_ROADMAP` | Documented in `Deployment_and_Operations_Guide.md` |
-| **REQ-RM-02** | Dynamic network packet traffic animation on topology canvas | Roadmap | `DEFERRED_TO_ROADMAP` | Documented in `Deployment_and_Operations_Guide.md` |
-| **REQ-RM-03** | Advanced alerting notification engine (PagerDuty/Slack webhooks) | Roadmap | `DEFERRED_TO_ROADMAP` | Documented in `Deployment_and_Operations_Guide.md` |
+| **REQ-V11-01** | Alert Rule Engine (CPU >85%/95%, RAM >85%/95%, Disk >80%/90%, Node DOWN >2m) | V1.1 | `IMPLEMENTED_VERIFIED` | `backend/tests/test_alert_engine.py` |
+| **REQ-V11-02** | 15-minute Alert Deduplication logic | V1.1 | `IMPLEMENTED_VERIFIED` | `test_alert_threshold_evaluation_and_deduplication` PASS |
+| **REQ-V11-03** | Auto-resolve & Resolve notification delivery | V1.1 | `IMPLEMENTED_VERIFIED` | `test_alert_threshold_evaluation_and_deduplication` PASS |
+| **REQ-V11-04** | 15-minute Critical Escalation logic | V1.1 | `IMPLEMENTED_VERIFIED` | `test_critical_alert_escalation_after_15_minutes` PASS |
+| **REQ-V11-05** | Modular Notification System (Log, Webhook, Email) | V1.1 | `IMPLEMENTED_VERIFIED` | `backend/tests/test_notification_providers.py` PASS |
+| **REQ-V11-06** | Alert REST APIs & Audit Trail ACK | V1.1 | `IMPLEMENTED_VERIFIED` | `backend/tests/test_alert_api.py` PASS |
+| **REQ-V11-07** | Historical Metrics Range Selector (1h, 24h, 7d, 30d) | V1.1 | `IMPLEMENTED_VERIFIED` | `frontend/src/pages/TopologyPage.tsx` |
+| **REQ-V11-08** | Alerts Active Feed, History Log, and Rules UI | V1.1 | `IMPLEMENTED_VERIFIED` | `frontend/src/pages/AlertsPage.tsx` |
 
 ---
 
-## Ringkasan Verifikasi
-- Total Requirements: **35**
-- Implemented & Verified: **32 (91.4%)**
-- Deferred to Roadmap: **3 (8.6%)**
+## Ringkasan Verifikasi Final V1.1
+- Total Requirements: **43**
+- Implemented & Verified: **40 (93.0%)**
+- Deferred to Roadmap: **3 (7.0%)**
 - Out of Scope: **0**

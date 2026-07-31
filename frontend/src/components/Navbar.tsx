@@ -11,6 +11,7 @@ import {
   Wifi,
   WifiOff,
   Activity,
+  Bell,
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -46,6 +47,11 @@ export const Navbar: React.FC = () => {
           <NavLink to="/inventory" className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}>
             <ListFilter className="nav-icon" />
             <span>Inventory</span>
+          </NavLink>
+
+          <NavLink to="/alerts" className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}>
+            <Bell className="nav-icon" />
+            <span>Alerts</span>
           </NavLink>
 
           {isAdmin && (
