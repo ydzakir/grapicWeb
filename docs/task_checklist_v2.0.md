@@ -26,10 +26,10 @@ Dokumen pelacakan tugas untuk perencanaan dan implementasi **Versi 2.0** aplikas
 - [ ] Template Email Laporan Eksekutif HTML
 - [ ] Dashboard Pengaturan Jadwal Laporan
 
-### [ ] Subproyek 5 — Topology History & Time-Travel Change Comparison
-- [ ] Engine Versioning Snapshot Topologi (Diff Canvas)
-- [ ] UI Visualisasi Perbandingan Topologi Antar Waktu (Time-Travel Viewer)
-- [ ] Audit Log Perubahan Relasi & Perangkat
+### [x] Subproyek 5 — Topology History & Time-Travel Change Comparison
+- [x] Engine Versioning Snapshot Topologi (Diff Canvas)
+- [x] UI Visualisasi Perbandingan Topologi Antar Waktu (Time-Travel Viewer)
+- [x] Audit Log Perubahan Relasi & Perangkat
 
 ### [ ] Subproyek 6 — Cloudflare Edge Status Integration
 - [ ] Collector Provider Cloudflare Status API & DNS Health Check

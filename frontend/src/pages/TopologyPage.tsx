@@ -234,6 +234,21 @@ export const TopologyPage: React.FC = () => {
           <button onClick={() => refetch()} className="btn-secondary" title="Refresh Topology">
             <RefreshCw className="btn-icon" /> Refresh
           </button>
+
+          <button
+            onClick={async () => {
+              try {
+                await apiClient.post('/topology/snapshots/take');
+                alert('Snapshot saved successfully!');
+              } catch (e) {
+                alert('Failed to save snapshot.');
+              }
+            }}
+            className="btn-primary"
+            title="Take Topology Snapshot"
+          >
+            <Layers className="btn-icon" /> Take Snapshot
+          </button>
         </div>
       </div>
 

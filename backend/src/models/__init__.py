@@ -15,6 +15,7 @@ from models.node import (
 from models.user import User, UserRole
 
 from models.network import EdgeConfidenceLevel, NetworkEdge, Subnet
+from models.topology_history import TopologyChangeLog, TopologySnapshot
 
 __all__ = [
     "Base",
@@ -43,4 +44,6 @@ __all__ = [
     "Subnet",
     "NetworkEdge",
     "EdgeConfidenceLevel",
+    "TopologySnapshot",
+    "TopologyChangeLog",
 ]

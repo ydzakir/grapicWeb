@@ -62,10 +62,14 @@ Matriks penelusuran kebutuhan (*Requirement Traceability Matrix*) untuk proyek *
 | **REQ-V20-SP03-02** | Excel Workbook Report Generator (`openpyxl`) | V2.0 (SP3) | `IMPLEMENTED_VERIFIED` | `backend/tests/test_report_service.py` PASS |
 | **REQ-V20-SP03-03** | Report REST API Generate & File Download | V2.0 (SP3) | `IMPLEMENTED_VERIFIED` | `backend/src/api/v1/reports.py` PASS |
 
+| **REQ-V20-SP05-01** | Topology Snapshot Versioning & Persistence | V2.0 (SP5) | `IMPLEMENTED_VERIFIED` | `backend/tests/test_topology_history.py` PASS |
+| **REQ-V20-SP05-02** | Time-Travel Snapshot Comparison & Diff Engine | V2.0 (SP5) | `IMPLEMENTED_VERIFIED` | `test_topology_snapshot_save_and_diff_comparison` PASS |
+| **REQ-V20-SP05-03** | Snapshot History REST APIs & Take Snapshot Action | V2.0 (SP5) | `IMPLEMENTED_VERIFIED` | `backend/src/api/v1/topology.py` PASS |
+
 ---
 
-## Ringkasan Verifikasi Final V2.0 (Subproyek 3)
-- Total Requirements: **53**
-- Implemented & Verified: **50 (94.3%)**
-- Deferred to Roadmap: **3 (5.7%)**
+## Ringkasan Verifikasi Final V2.0 (Subproyek 3 & 5)
+- Total Requirements: **56**
+- Implemented & Verified: **53 (94.6%)**
+- Deferred to Roadmap: **3 (5.4%)**
 - Out of Scope: **0**
