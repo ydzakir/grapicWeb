@@ -70,11 +70,16 @@ Matriks penelusuran kebutuhan (*Requirement Traceability Matrix*) untuk proyek *
 | **REQ-V20-SP09-02** | Prometheus HA Cluster & Thanos Querier Deduplication | V2.0 (SP9) | `IMPLEMENTED_VERIFIED` | `backend/tests/test_ha_dr.py` PASS |
 | **REQ-V20-SP09-03** | Docker Compose HA Stack & Automated DR Failover Probing | V2.0 (SP9) | `IMPLEMENTED_VERIFIED` | `deploy/scripts/dr_failover.py` PASS |
 
+| **REQ-V20-SP06-01** | Cloudflare Edge Status Collector Adapter & Status V2 API Parser | V2.0 (SP6) | `IMPLEMENTED_VERIFIED` | `backend/tests/test_cloudflare_integration.py` PASS |
+| **REQ-V20-SP06-02** | Cloudflare Edge Outage Alert Trigger & Auto Resolution | V2.0 (SP6) | `IMPLEMENTED_VERIFIED` | `backend/tests/test_cloudflare_integration.py` PASS |
+| **REQ-V20-SP06-03** | Cloudflare Edge Status Dashboard Widget & Sync Action | V2.0 (SP6) | `IMPLEMENTED_VERIFIED` | `frontend/src/components/CloudflareEdgeCard.tsx` PASS |
+
 ---
 
-## Ringkasan Verifikasi Final V2.0 (Subproyek 3, 5, & 9)
-- Total Requirements: **59**
-- Implemented & Verified: **56 (94.9%)**
-- Deferred to Roadmap: **3 (5.1%)**
+## Ringkasan Verifikasi Final V2.0 (Subproyek 3, 5, 9, & 6)
+- Total Requirements: **62**
+- Implemented & Verified: **59 (95.2%)**
+- Deferred to Roadmap: **3 (4.8%)**
 - Out of Scope: **0**
+
 

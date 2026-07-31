@@ -4,8 +4,10 @@ import { apiClient } from '../services/apiClient';
 import { PaginatedNodes, TopologyGraph } from '../types/api';
 import { Server, Container, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { CloudflareEdgeCard } from '../components/CloudflareEdgeCard';
 
 export const DashboardPage: React.FC = () => {
+
   // Query all active nodes for summary statistics
   const { data: nodesData, isLoading: isLoadingNodes } = useQuery<PaginatedNodes>({
     queryKey: ['nodes', 'summary'],
@@ -78,8 +80,14 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Cloudflare Edge Status Integration Card */}
+      <div className="mb-6">
+        <CloudflareEdgeCard />
+      </div>
+
       {/* Main Grid: Mini Topology & Unhealthy List */}
       <div className="dashboard-grid">
+
         <div className="panel flex-2">
           <div className="panel-header">
             <h3>Infrastructure Topology Preview</h3>

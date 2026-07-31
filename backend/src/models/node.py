@@ -33,6 +33,8 @@ class NodeType(enum.StrEnum):
     DOCKER_HOST = "docker_host"
     DOCKER_CONTAINER = "docker_container"
     CONTAINER = "docker_container"
+    SERVICE = "service"
+
 
 
 class NodeStatus(enum.StrEnum):

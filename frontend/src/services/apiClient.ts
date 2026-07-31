@@ -56,4 +56,9 @@ export const apiClient = {
   put: <T>(endpoint: string, body?: any) =>
     request<T>(endpoint, { method: 'PUT', body: JSON.stringify(body) }),
   delete: <T>(endpoint: string) => request<T>(endpoint, { method: 'DELETE' }),
+  
+  // Cloudflare Status API
+  fetchCloudflareStatus: () => request<{ status: string; data: any }>('/cloudflare/status'),
+  syncCloudflareStatus: () => request<{ status: string; message: string; data: any }>('/cloudflare/sync', { method: 'POST' }),
 };
+

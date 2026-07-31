@@ -31,10 +31,11 @@ Dokumen pelacakan tugas untuk perencanaan dan implementasi **Versi 2.0** aplikas
 - [x] UI Visualisasi Perbandingan Topologi Antar Waktu (Time-Travel Viewer)
 - [x] Audit Log Perubahan Relasi & Perangkat
 
-### [ ] Subproyek 6 — Cloudflare Edge Status Integration
-- [ ] Collector Provider Cloudflare Status API & DNS Health Check
-- [ ] Tampilan Status Edge Cloudflare pada Dashboard & Topologi
-- [ ] Notifikasi Gangguan Edge Cloudflare
+### [x] Subproyek 6 — Cloudflare Edge Status Integration (**SELESAI & TERUJI 100%**)
+- [x] Collector Provider Cloudflare Status API & DNS Health Check
+- [x] Tampilan Status Edge Cloudflare pada Dashboard & Topologi
+- [x] Notifikasi Gangguan Edge Cloudflare
+
 
 ### [ ] Subproyek 7 — Ticketing System Integration (Jira / ServiceNow / ITSM)
 - [ ] Adapter Webhook Ticketing (Otomasikan Pembuatan Tiket Insiden)

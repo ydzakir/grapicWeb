@@ -4,7 +4,8 @@ export type NodeType =
   | 'hyperv_host'
   | 'docker_host'
   | 'hyperv_vm'
-  | 'docker_container';
+  | 'docker_container'
+  | 'service';
 
 export type NodeStatus = 'up' | 'down' | 'warning' | 'unknown';
 export type ReviewStatus = 'pending' | 'approved' | 'rejected';
@@ -149,3 +150,29 @@ export interface AlertRuleItem {
   is_enabled: boolean;
   created_at: string;
 }
+
+export interface CloudflareComponentStatus {
+  id: string;
+  name: string;
+  status: 'operational' | 'degraded_performance' | 'partial_outage' | 'major_outage';
+  updated_at?: string;
+}
+
+export interface CloudflareIncident {
+  id: string;
+  name: string;
+  status: string;
+  impact: 'none' | 'minor' | 'major' | 'critical';
+  shortlink?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CloudflareStatusSummary {
+  global_indicator: 'none' | 'minor' | 'major' | 'critical';
+  global_description: string;
+  updated_at: string;
+  components: CloudflareComponentStatus[];
+  incidents: CloudflareIncident[];
+}
+
