@@ -14,6 +14,7 @@ import {
   Archive,
   RefreshCw,
   AlertCircle,
+  Clock,
 } from 'lucide-react';
 
 export const InventoryPage: React.FC = () => {
@@ -208,6 +209,11 @@ export const InventoryPage: React.FC = () => {
                   <td>
                     <div className="node-name-cell">
                       <span className="node-name-text">{node.name}</span>
+                      {node.review_status === 'pending' && (
+                        <span className="badge badge-pending-review" style={{ backgroundColor: 'rgba(245, 158, 11, 0.15)', color: '#d97706', border: '1px solid rgba(245, 158, 11, 0.3)', fontSize: '0.75rem', padding: '2px 8px', borderRadius: '12px', marginLeft: '8px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+                          <Clock className="badge-icon" style={{ width: '12px', height: '12px' }} /> Pending Review
+                        </span>
+                      )}
                       {node.metadata?.validation_issue && (
                         <span className="validation-issue-tag" title={node.metadata.validation_issue}>
                           <AlertTriangle className="tag-icon" /> Invalid Name Format
