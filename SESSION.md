@@ -258,5 +258,15 @@ Jika pengguna meminta modifikasi, penambahan fitur baru, atau perbaikan kode di 
 - **Hasil Verifikasi**:
   - `backend\.venv\Scripts\pytest.exe backend/tests` → **42 Passed / 0 Failed (100% Pass)**.
 
+### Modul R4 — Report Scheduler & Email (2 Agustus 2026)
+- **Problem**: Cron engine pengiriman laporan otomatis belum menyertakan pengiriman SMTP aktual dengan lampiran PDF/Excel.
+- **Solusi**:
+  1. `notification_service.py` diperbarui dengan pengiriman email via `smtplib` (`MIMEMultipart`, `MIMEApplication`, `MIMEText`) secara non-blocking (`asyncio.to_thread`).
+  2. `report_scheduler_service.py` dihubungkan untuk menyertakan lampiran file PDF dan Excel pada laporan eksekutif HTML.
+  3. Konfigurasi contoh SMTP ditambahkan pada `.env.example`.
+- **Hasil Verifikasi**:
+  - `backend\.venv\Scripts\pytest.exe backend/tests` → **42 Passed / 0 Failed (100% Pass)**.
+
+
 
 

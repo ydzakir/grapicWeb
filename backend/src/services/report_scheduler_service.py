@@ -1,13 +1,11 @@
 import logging
-import os
-import uuid
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.alert import Alert, AlertSeverity, AlertStatus
+from models.alert import Alert
 from models.audit import AuditLog
 from models.node import Node
 from models.report_schedule import ReportSchedule
@@ -18,10 +16,10 @@ logger = logging.getLogger("report_scheduler")
 
 
 def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
-def calculate_next_run_at(frequency: str, from_time: Optional[datetime] = None) -> datetime:
+def calculate_next_run_at(frequency: str, from_time: datetime | None = None) -> datetime:
     base = from_time or utc_now()
     if frequency == "daily":
         return base + timedelta(days=1)
@@ -38,7 +36,7 @@ def build_executive_html_email_content(
     up_count: int,
     down_count: int,
     warn_count: int,
-    recent_alerts: List[Dict[str, Any]],
+    recent_alerts: list[dict[str, Any]],
 ) -> str:
     """Renders a responsive HTML Executive Email Summary Template."""
     now_str = utc_now().strftime("%B %d, %Y - %H:%M UTC")
@@ -136,17 +134,22 @@ def build_executive_html_email_content(
 
 async def send_executive_report_email(
     schedule: ReportSchedule,
-    recipients: List[str],
-    pdf_path: Optional[str] = None,
-    excel_path: Optional[str] = None,
+    recipients: list[str],
+    pdf_path: str | None = None,
+    excel_path: str | None = None,
     html_content: str = "",
 ) -> bool:
-    """Sends executive HTML email report to recipients."""
-    provider = get_notification_provider("email")
+    """Sends executive HTML email report with attached PDF/Excel files to recipients."""
+    import os
+    from services.alert_service import get_active_notification_provider
+
+    provider = get_active_notification_provider()
+    attachments = [p for p in (pdf_path, excel_path) if p and os.path.exists(p)]
+
     for email_addr in recipients:
         await provider.send_notification(
             title=f"[EXECUTIVE REPORT] {schedule.name}",
-            message=f"Executive {schedule.report_type.capitalize()} Report delivered to {email_addr}. Attachments: PDF={bool(pdf_path)}, Excel={bool(excel_path)}",
+            message=f"Executive {schedule.report_type.capitalize()} Report delivered to {email_addr}.",
             severity="info",
             details={
                 "recipient": email_addr,
@@ -155,6 +158,8 @@ async def send_executive_report_email(
                 "excel_path": excel_path,
                 "html_body_length": len(html_content),
             },
+            attachments=attachments,
+            html_body=html_content,
         )
     return True
 
@@ -237,7 +242,7 @@ async def execute_single_report_schedule(db: AsyncSession, schedule: ReportSched
     return True
 
 
-async def execute_due_report_schedules(db: AsyncSession) -> List[ReportSchedule]:
+async def execute_due_report_schedules(db: AsyncSession) -> list[ReportSchedule]:
     """Cron Engine runner that checks and executes due report schedules."""
     now = utc_now()
     stmt = select(ReportSchedule).where(
