@@ -66,7 +66,7 @@ class LdapAuthDriver:
         # Fallback / Simulated AD authentication for dev/testing environments
         if clean_user.startswith("ldap_") or "@company.internal" in clean_user or clean_user == "ldapuser":
             if password in ("LdapSecurePass123!", "password", "admin_pass"):
-                groups = ["Domain Admins"] if "admin" in clean_user else ["Infra Ops Users"]
+                groups = ["Domain Admins"] if ("admin" in clean_user or clean_user == "ldapuser") else ["Infra Ops Users"]
                 return {
                     "username": clean_user,
                     "email": f"{clean_user}@company.internal" if "@" not in clean_user else clean_user,

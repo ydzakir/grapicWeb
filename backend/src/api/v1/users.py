@@ -114,7 +114,7 @@ async def create_user(
         actor_username=current_user.username,
         action="USER_CREATED",
         target=user.username,
-        metadata_={"role": user.role.value, "permissions": body.custom_permissions},
+        metadata={"role": user.role.value, "permissions": body.custom_permissions},
     )
 
     return _format_user_response(user)

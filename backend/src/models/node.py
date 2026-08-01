@@ -26,6 +26,7 @@ from models.base import GUID, TimestampMixin, UUIDMixin
 class NodeType(enum.StrEnum):
     DATA_CENTER = "data_center"
     PHYSICAL_SERVER = "physical_server"
+    SERVER = "physical_server"
     HYPERV_HOST = "hyperv_host"
     HYPERVISOR_HOST = "hyperv_host"
     HYPERV_VM = "hyperv_vm"
@@ -36,9 +37,9 @@ class NodeType(enum.StrEnum):
     SERVICE = "service"
 
 
-
 class NodeStatus(enum.StrEnum):
     UP = "up"
+    ONLINE = "up"
     DOWN = "down"
     WARNING = "warning"
     UNKNOWN = "unknown"
