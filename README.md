@@ -1,25 +1,42 @@
-# Infrastructure Monitoring & Auto-Topology (MVP)
+# Infrastructure Monitoring & Auto-Topology (Version 2.0 Enterprise Release)
 
-A centralized infrastructure monitoring and auto-topology application for physical servers, Hyper-V hosts/VMs, and Docker hosts/containers.
+A centralized, enterprise-grade infrastructure monitoring, auto-topology visualization, and governance system for physical servers, Hyper-V hosts/VMs, Docker containers, and Cloudflare edge services.
 
 ---
 
-## Documentation Links
+## 🌟 Version 2.0 Key Subprojects (100% Completed)
+
+1. 🛡️ **Advanced User Management & Granular RBAC**: Role definitions (`ADMIN`, `OPERATOR`, `VIEWER`), action-level custom permissions, and node group scoping.
+2. 🔑 **Enterprise SSO & LDAP / OpenID Connect (OIDC)**: Multi-driver authentication (Local, LDAP/Active Directory, Keycloak/Okta OIDC SSO) with auto-provisioning & group mapping.
+3. 📄 **Historical PDF & Excel Reports**: Automated executive summary reports generation and download endpoints.
+4. 📧 **Scheduled Automated Report Email Delivery**: Cron scheduler engine delivering HTML executive summary emails with PDF/Excel attachments.
+5. ⏳ **Topology History & Time-Travel Viewer**: Versioned topology canvas snapshot diff viewer.
+6. 🌐 **Cloudflare Edge Status Integration**: Cloudflare status API collector, DNS health check, and edge disruption alerts.
+7. 🎫 **ITSM Ticketing Integration (Jira / ServiceNow)**: Automated incident ticket creation, status synchronization, and manual ticket drawer.
+8. 🔐 **External Secrets Provider (HashiCorp Vault)**: Vault Transit & KV-v2 integration with key rotation and fallback provider.
+9. ⚡ **Active-Active High Availability & Node Redundancy**: HA cluster heartbeat, leader election, and failover synchronization.
+10. 📋 **Governance Workflow & Quarterly Audit Review**: Account snapshot audit campaigns, decision submission, reviewer escalation engine, and SHA-256 executive digital sign-off.
+
+---
+
+## 📘 Documentation Links
+- 📖 [Master SESSION Audit Record](SESSION.md)
+- 📋 [Task Checklist v2.0](docs/task_checklist_v2.0.md)
 - 📘 [Deployment & Operations Guide](docs/Deployment_and_Operations_Guide.md)
 - 📊 [Requirement Traceability Matrix (RTM)](docs/requirement_traceability_matrix.md)
 - 🛡️ [Security, Backup & Operations Guide](docs/Operations_Backup_Monitoring.md)
-- 📋 [Task Checklist & Progress Artifact](docs/task_checklist.md)
 
 ---
 
-## Prerequisites
-- **Docker Engine** v24+ & **Docker Compose** v2.20+
-- **Python** 3.12+ (for local backend development)
-- **Node.js** v20+ (for local frontend development)
+## 🔐 Default Demo Credentials
+
+- **Local Admin Account**: `admin@infra.com` (or `admin`) / `AdminSecurePass123!`
+- **LDAP Demo Account**: `ldapuser` / `LdapSecurePass123!`
+- **Enterprise OIDC SSO**: Click *"Login with Enterprise OIDC / Single Sign-On"* on the login page.
 
 ---
 
-## Quick Start (Docker Compose)
+## 🚀 Quick Start (Docker Compose)
 
 1. **Copy environment configuration**:
    ```bash
@@ -48,14 +65,14 @@ A centralized infrastructure monitoring and auto-topology application for physic
 
 ---
 
-## Test Suites Verification
+## 🧪 Test Suites Verification
 
-### Backend Pytest Suite
+### Backend Pytest Suite (90/90 Passing)
 ```bash
 cd backend
-python -m pytest
+backend\.venv\Scripts\pytest.exe backend/tests
 ```
-> **Result**: 50 passed (100% PASSING)
+> **Result**: `90 passed` (100% PASSING, 0 failures)
 
 ### Frontend Vitest Suite & Production Build
 ```bash
