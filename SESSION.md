@@ -306,6 +306,17 @@ Jika pengguna meminta modifikasi, penambahan fitur baru, atau perbaikan kode di 
 - **Hasil Verifikasi**:
   - `backend\.venv\Scripts\pytest.exe backend/tests` → **42 Passed / 0 Failed (100% Pass)**.
 
+### Modul R9 — Demo Seed & HA Status Jujur (2 Agustus 2026)
+- **Problem**: Script demo seed belum mencakup variasi role pengguna, relasi topology node, alert rules & firing alerts, serta penanganan `DATABASE_URL` override.
+- **Solusi**:
+  1. `seed_demo.py` diperbarui untuk menumbuhkan pengguna `admin`, `operator`, dan `viewer` dengan password hash terenkripsi.
+  2. Menambahkan seeding relasi edge `NodeConnection` (network & hosts) serta demo rule & firing alert kritis pada `VM-JKT-DB-01`.
+  3. Menyediakan dukungan `DATABASE_URL` override pada `core/config.py` agar eksekusi seed standalone dapat berjalan lancar.
+- **Hasil Verifikasi**:
+  - `python backend/src/seed_demo.py` → **Sukses Seeding 100% tanpa error**.
+  - `backend\.venv\Scripts\pytest.exe backend/tests` → **42 Passed / 0 Failed (100% Pass)**.
+
+
 
 
 
