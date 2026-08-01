@@ -17,18 +17,12 @@ import {
   UserCheck,
   UserX,
   Award,
-  Calendar,
   Mail,
   Play,
   Trash2,
   Users,
-  Key,
   Radio,
   HelpCircle,
-  Info,
-  Terminal,
-  Search,
-  Activity,
 } from 'lucide-react';
 
 export const AdministrationPage: React.FC = () => {
@@ -81,7 +75,7 @@ export const AdministrationPage: React.FC = () => {
   const [isCreateScheduleOpen, setIsCreateScheduleOpen] = useState(false);
   const [schedName, setSchedName] = useState('Weekly Executive Uptime Report');
   const [schedFreq, setSchedFreq] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
-  const [schedReportType, setSchedReportType] = useState<'weekly' | 'monthly'>('weekly');
+  const [schedReportType] = useState<'weekly' | 'monthly'>('weekly');
   const [schedFormat, setSchedFormat] = useState<'pdf' | 'excel' | 'both'>('pdf');
   const [schedRecipients, setSchedRecipients] = useState('exec@company.com, ops@company.com');
 
@@ -385,11 +379,9 @@ export const AdministrationPage: React.FC = () => {
         report_type: reportType,
         format: reportFormat,
       });
-      const downloadUrl = genRes.download_url;
-      const response = await apiClient.get<Blob>(downloadUrl, {
-        responseType: 'blob',
-      });
-      const url = window.URL.createObjectURL(new Blob([response]));
+      const downloadUrl = genRes.download_url.replace('/api/v1', '');
+      const response = await apiClient.download(downloadUrl);
+      const url = window.URL.createObjectURL(response);
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', genRes.filename || `Report_${reportType}.${reportFormat === 'pdf' ? 'pdf' : 'xlsx'}`);
@@ -504,7 +496,7 @@ export const AdministrationPage: React.FC = () => {
                     <span className={`type-badge ${target.target_type}`}>{target.target_type.toUpperCase()}</span>
                   </div>
                   <div className="card-body">
-                    <p><strong>Host/URL:</strong> {target.host || (target as any).host_or_url}</p>
+                    <p><strong>Host/URL:</strong> {target.host}</p>
                     {target.port && <p><strong>Port:</strong> {target.port}</p>}
                     <p><strong>Poll Interval:</strong> {target.poll_interval_seconds}s</p>
                     <p><strong>Status:</strong> {target.enabled !== false ? 'Enabled' : 'Disabled'}</p>

@@ -277,6 +277,18 @@ Jika pengguna meminta modifikasi, penambahan fitur baru, atau perbaikan kode di 
 - **Hasil Verifikasi**:
   - `backend\.venv\Scripts\pytest.exe backend/tests` → **42 Passed / 0 Failed (100% Pass)**.
 
+### Modul R6 — Frontend Build & Test Hijau (2 Agustus 2026)
+- **Problem**: Frontend TypeScript build error (`npm run build`), mismatch properti `CollectorTarget` (`host`/`enabled`), dan test assertion login page `App.test.tsx`.
+- **Solusi**:
+  1. Tipe `CollectorTarget` di `api.ts` disinkronkan menggunakan `host` dan `enabled`.
+  2. `AdministrationPage.tsx` diperbarui untuk menggunakan `apiClient.download` dan properti `CollectorTarget` yang valid.
+  3. `App.test.tsx` disesuaikan assertion UI login page-nya.
+  4. Menambahkan skrip `"e2e": "playwright test"` ke `package.json` dan menyelaraskan `smoke.spec.ts`.
+- **Hasil Verifikasi**:
+  - `npm run build` → **0 Error (Build Selesai 100%)**.
+  - `npm test` → **4 passed / 0 failed (100% Pass)**.
+
+
 
 
 
