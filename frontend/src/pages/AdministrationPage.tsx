@@ -23,6 +23,12 @@ import {
   Trash2,
   Users,
   Key,
+  Radio,
+  HelpCircle,
+  Info,
+  Terminal,
+  Search,
+  Activity,
 } from 'lucide-react';
 
 export const AdministrationPage: React.FC = () => {
@@ -37,9 +43,23 @@ export const AdministrationPage: React.FC = () => {
   const [targetName, setTargetName] = useState('');
   const [targetType, setTargetType] = useState<'ssh' | 'winrm' | 'hyperv' | 'docker'>('ssh');
   const [hostUrl, setHostUrl] = useState('');
-  const [port, setPort] = useState<number | ''>('');
+  const [port, setPort] = useState<number | ''>(22);
   const [credRef, setCredRef] = useState('');
   const [testResult, setTestResult] = useState<{ id: string; status: string; message: string } | null>(null);
+
+  // Subnet Auto-Scan State
+  const [isSubnetScanModalOpen, setIsSubnetScanModalOpen] = useState(false);
+  const [subnetCidr, setSubnetCidr] = useState('10.10.0.0/24');
+  const [isSubnetScanning, setIsSubnetScanning] = useState(false);
+  const [subnetScanResult, setSubnetScanResult] = useState<any | null>(null);
+  const [subnetScanError, setSubnetScanError] = useState<string | null>(null);
+
+  const handleTargetTypeChange = (type: 'ssh' | 'winrm' | 'hyperv' | 'docker') => {
+    setTargetType(type);
+    if (type === 'ssh') setPort(22);
+    else if (type === 'winrm' || type === 'hyperv') setPort(5986);
+    else if (type === 'docker') setPort(2376);
+  };
 
   // Data Center State
   const [isAddDcModalOpen, setIsAddDcModalOpen] = useState(false);
@@ -127,6 +147,24 @@ export const AdministrationPage: React.FC = () => {
     queryFn: () => apiClient.get<UserDetailItem[]>('/users'),
     enabled: activeTab === 'users',
   });
+
+  const handleSubnetScanSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubnetScanning(true);
+    setSubnetScanError(null);
+    setSubnetScanResult(null);
+
+    try {
+      const res = await apiClient.post<any>('/collectors/scan-subnet', { cidr: subnetCidr });
+      setSubnetScanResult(res);
+      queryClient.invalidateQueries({ queryKey: ['pending-nodes'] });
+      queryClient.invalidateQueries({ queryKey: ['nodes-list'] });
+    } catch (err: any) {
+      setSubnetScanError(err?.message || 'Failed to complete subnet CIDR scan.');
+    } finally {
+      setIsSubnetScanning(false);
+    }
+  };
 
   // Create Collector Target Mutation
   const createTargetMutation = useMutation({
@@ -429,11 +467,24 @@ export const AdministrationPage: React.FC = () => {
       {/* Tab 1: Collector Targets */}
       {activeTab === 'collectors' && (
         <div className="tab-content">
-          <div className="tab-header">
+          <div className="tab-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
             <h3>Infrastructure Collector Targets</h3>
-            <button onClick={() => setIsAddTargetModalOpen(true)} className="btn-primary">
-              <Plus className="btn-icon" /> Add Collector Target
-            </button>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => {
+                  setIsSubnetScanModalOpen(true);
+                  setSubnetScanResult(null);
+                  setSubnetScanError(null);
+                }}
+                className="btn-primary"
+                style={{ backgroundColor: '#2563eb', borderColor: '#2563eb' }}
+              >
+                <Radio className="btn-icon" /> Auto-Scan Subnet (CIDR Range)
+              </button>
+              <button onClick={() => setIsAddTargetModalOpen(true)} className="btn-secondary">
+                <Plus className="btn-icon" /> Add Collector Target
+              </button>
+            </div>
           </div>
 
           {isLoadingTargets ? (
@@ -903,10 +954,96 @@ export const AdministrationPage: React.FC = () => {
         </div>
       )}
 
+      {/* Modal: Subnet CIDR Auto-Scan */}
+      {isSubnetScanModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-card modal-lg">
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Radio className="icon-blue" /> Auto-Scan IP Subnet (Agentless Discovery)
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
+              Pindai seluruh rentang IP Subnet (contoh: <code>10.10.0.0/24</code>) secara otomatis. Sistem akan mendeteksi server aktif, port layanan (SSH 22, WinRM 5986, RDP 3389, Docker 2376), dan memasukkan aset server langsung ke Inventory &amp; Topology canvas.
+            </p>
+
+            <form onSubmit={handleSubnetScanSubmit}>
+              <div className="form-group">
+                <label>IP Subnet Range (CIDR Format)</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 10.10.0.0/24 or 192.168.1.0/24"
+                  value={subnetCidr}
+                  onChange={(e) => setSubnetCidr(e.target.value)}
+                />
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                  Petunjuk: Format CIDR <code>/24</code> akan memindai 254 IP host secara otomatis (contoh: 10.10.0.1 s.d. 10.10.0.254).
+                </span>
+              </div>
+
+              {subnetScanError && (
+                <div className="test-feedback error" style={{ margin: '12px 0' }}>
+                  <AlertCircle className="icon-error" />
+                  <span>{subnetScanError}</span>
+                </div>
+              )}
+
+              {subnetScanResult && (
+                <div style={{ marginTop: '16px', padding: '12px', background: 'var(--bg-subtle)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                  <h4 style={{ margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '6px', color: '#10b981' }}>
+                    <CheckCircle2 size={16} /> Pemindaian Selesai: {subnetScanResult.discovered_count} Server Aktif Ditemukan!
+                  </h4>
+                  <p style={{ fontSize: '0.8rem', margin: '0 0 10px 0' }}>
+                    Total IP dipindai: <strong>{subnetScanResult.scanned_hosts_count}</strong> | Subnet: <code>{subnetScanResult.cidr}</code>
+                  </p>
+
+                  {subnetScanResult.items && subnetScanResult.items.length > 0 ? (
+                    <div className="table-container" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>Discovered Host Name</th>
+                            <th>IP Address</th>
+                            <th>Inferred Type</th>
+                            <th>OS</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {subnetScanResult.items.map((item: any) => (
+                            <tr key={item.id}>
+                              <td><strong>{item.name}</strong></td>
+                              <td><code>{item.ip_address}</code></td>
+                              <td><span className="node-type-tag">{item.type}</span></td>
+                              <td>{item.os}</td>
+                              <td><span className="badge badge-up">ACTIVE</span></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Tidak ada respons dari server aktif pada port umum di rentang subnet ini.</p>
+                  )}
+                </div>
+              )}
+
+              <div className="modal-actions" style={{ marginTop: '20px' }}>
+                <button type="button" onClick={() => setIsSubnetScanModalOpen(false)} className="btn-secondary">
+                  Tutup
+                </button>
+                <button type="submit" className="btn-primary" disabled={isSubnetScanning} style={{ backgroundColor: '#2563eb', borderColor: '#2563eb' }}>
+                  {isSubnetScanning ? 'Sedang Memindai Subnet...' : 'Mulai Scan Subnet'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Modal: Create Collector Target */}
       {isAddTargetModalOpen && (
         <div className="modal-overlay">
-          <div className="modal-card">
+          <div className="modal-card modal-lg">
             <h3>Add Collector Target</h3>
             <form onSubmit={handleCreateTargetSubmit}>
               <div className="form-group">
@@ -914,7 +1051,7 @@ export const AdministrationPage: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Production Linux Cluster 01"
+                  placeholder="e.g. Windows Server Prod 01 / Hyper-V Cluster"
                   value={targetName}
                   onChange={(e) => setTargetName(e.target.value)}
                 />
@@ -922,12 +1059,35 @@ export const AdministrationPage: React.FC = () => {
 
               <div className="form-group">
                 <label>Target Type</label>
-                <select value={targetType} onChange={(e) => setTargetType(e.target.value as any)}>
+                <select value={targetType} onChange={(e) => handleTargetTypeChange(e.target.value as any)}>
                   <option value="ssh">SSH (Linux Server)</option>
                   <option value="winrm">WinRM (Windows Server)</option>
-                  <option value="hyperv">Hyper-V Host</option>
-                  <option value="docker">Docker Host / Swarm</option>
+                  <option value="hyperv">Hyper-V Host Manager</option>
+                  <option value="docker">Docker Host / Swarm Daemon</option>
                 </select>
+              </div>
+
+              {/* Step-by-Step Server Setup Guide Box */}
+              <div style={{ padding: '12px', background: 'rgba(37, 99, 235, 0.08)', borderRadius: '6px', border: '1px solid rgba(37, 99, 235, 0.25)', marginBottom: '16px' }}>
+                <h4 style={{ margin: '0 0 6px 0', fontSize: '0.85rem', color: '#60a5fa', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <HelpCircle size={14} /> Panduan Penerapan di Server Target ({targetType.toUpperCase()})
+                </h4>
+                {targetType === 'winrm' || targetType === 'hyperv' ? (
+                  <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                    Jalankan perintah PowerShell ini pada server Windows target (Run as Administrator) untuk mengizinkan monitoring agentless:<br />
+                    <code style={{ background: '#000', padding: '3px 6px', borderRadius: '4px', color: '#10b981', display: 'inline-block', marginTop: '4px' }}>
+                      Enable-PSRemoting -Force; Set-Item WSMan:\localhost\Service\Auth\Basic $true
+                    </code>
+                  </p>
+                ) : targetType === 'ssh' ? (
+                  <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                    Pastikan port SSH 22 terbuka pada server Linux target dan kunci SSH / password terdaftar di HashiCorp Vault atau environment secrets.
+                  </p>
+                ) : (
+                  <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                    Pastikan API Docker Engine TCP port 2376 (TLS) atau socket diizinkan untuk diakses dari server monitoring ini.
+                  </p>
+                )}
               </div>
 
               <div className="form-group">
@@ -935,38 +1095,41 @@ export const AdministrationPage: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="10.0.0.15 or https://docker.company.internal"
+                  placeholder="e.g. 10.10.0.12 or https://docker.company.internal"
                   value={hostUrl}
                   onChange={(e) => setHostUrl(e.target.value)}
                 />
               </div>
 
               <div className="form-group">
-                <label>Port (Optional)</label>
+                <label>Port (Default: {port})</label>
                 <input
                   type="number"
-                  placeholder="22 for SSH, 5986 for WinRM"
+                  placeholder="22 for SSH, 5986 for WinRM/Hyper-V, 2376 for Docker"
                   value={port}
                   onChange={(e) => setPort(e.target.value ? Number(e.target.value) : '')}
                 />
               </div>
 
               <div className="form-group">
-                <label>Credential Key Reference</label>
+                <label>Credential Key Reference (Vault / Secret Key)</label>
                 <input
                   type="text"
-                  placeholder="e.g. prod_ssh_key_v1"
+                  placeholder="e.g. prod_ssh_key_v1 or win_admin_cred"
                   value={credRef}
                   onChange={(e) => setCredRef(e.target.value)}
                 />
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                  Petunjuk: Nama alias kunci rahasia yang disimpan di HashiCorp Vault / Secret Manager (contoh: <code>prod_ssh_key_v1</code>).
+                </span>
               </div>
 
               <div className="modal-actions">
                 <button type="button" onClick={() => setIsAddTargetModalOpen(false)} className="btn-secondary">
-                  Cancel
+                  Batal
                 </button>
                 <button type="submit" className="btn-primary" disabled={createTargetMutation.isPending}>
-                  {createTargetMutation.isPending ? 'Saving...' : 'Add Target'}
+                  {createTargetMutation.isPending ? 'Menyimpan...' : 'Simpan Target'}
                 </button>
               </div>
             </form>

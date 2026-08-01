@@ -92,3 +92,109 @@ async def create_manual_network_edge(
     await db.commit()
     await db.refresh(edge)
     return edge
+
+
+import asyncio
+import ipaddress
+from models.node import NodeType, NodeStatus, ReviewStatus, LifecycleStatus
+from services.node_service import upsert_inventory_node
+
+
+async def probe_ip_host(ip_str: str) -> dict[str, Any] | None:
+    """Probe an IP address across standard infrastructure service ports concurrently."""
+    common_ports = [
+        (22, "ssh", "Linux Server", "physical_server", "Linux"),
+        (5986, "winrm_https", "Windows Hyper-V Host", "hyperv_host", "Windows Server"),
+        (5985, "winrm_http", "Windows Server", "hyperv_host", "Windows Server"),
+        (2376, "docker_tls", "Docker Host", "docker_host", "Linux/Docker"),
+        (2375, "docker_tcp", "Docker Host", "docker_host", "Linux/Docker"),
+        (3389, "rdp", "Windows Server", "physical_server", "Windows Server"),
+        (443, "https", "Web Service/API Node", "service", "Linux"),
+        (80, "http", "Web Service Node", "service", "Linux"),
+    ]
+
+    for port, proto, desc, node_type, os_hint in common_ports:
+        try:
+            _, writer = await asyncio.wait_for(
+                asyncio.open_connection(ip_str, port), timeout=0.35
+            )
+            writer.close()
+            await writer.wait_closed()
+            # Host responded on this port!
+            ip_suffix = ip_str.split(".")[-1]
+            suggested_name = f"{node_type.upper().replace('_', '-')}-AUTO-{ip_suffix}"
+            return {
+                "ip_address": ip_str,
+                "port": port,
+                "protocol": proto,
+                "suggested_name": suggested_name,
+                "node_type": node_type,
+                "os": os_hint,
+                "status": "up",
+            }
+        except (OSError, asyncio.TimeoutError):
+            continue
+
+    return None
+
+
+async def scan_subnet_ip_range(
+    db: AsyncSession,
+    cidr: str,
+    username: str = "admin",
+) -> dict[str, Any]:
+    """
+    Scans a CIDR subnet (e.g. 10.10.0.0/24) for active IP hosts and automatically registers discovered nodes into Inventory.
+    """
+    try:
+        network = ipaddress.ip_network(cidr.strip(), strict=False)
+    except ValueError as e:
+        raise ValueError(f"Invalid CIDR subnet format '{cidr}': {str(e)}")
+
+    hosts = list(network.hosts())
+    # Limit max hosts per scan request to 256 for optimal performance
+    if len(hosts) > 512:
+        hosts = hosts[:512]
+
+    tasks = [probe_ip_host(str(h)) for h in hosts]
+    results = await asyncio.gather(*tasks)
+
+    discovered = [r for r in results if r is not None]
+    added_nodes = []
+
+    for d in discovered:
+        node = await upsert_inventory_node(
+            db=db,
+            name=d["suggested_name"],
+            node_type=NodeType(d["node_type"]),
+            os=d["os"],
+            ip_address=d["ip_address"],
+            status=NodeStatus.UP,
+            metadata={"discovery_source": "subnet_cidr_auto_scan", "discovered_port": d["port"], "scanned_cidr": cidr},
+        )
+        added_nodes.append({
+            "id": str(node.id),
+            "name": node.name,
+            "ip_address": node.ip_address,
+            "type": node.type,
+            "os": node.os,
+            "status": node.status,
+            "review_status": node.review_status,
+        })
+
+    # Log audit entry
+    audit = AuditLog(
+        actor_username=username,
+        action="SUBNET_CIDR_AUTO_SCAN",
+        target=cidr,
+        metadata_={"scanned_hosts": len(hosts), "discovered_count": len(discovered)},
+    )
+    db.add(audit)
+    await db.commit()
+
+    return {
+        "cidr": cidr,
+        "scanned_hosts_count": len(hosts),
+        "discovered_count": len(discovered),
+        "items": added_nodes,
+    }

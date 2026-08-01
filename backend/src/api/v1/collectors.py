@@ -189,3 +189,30 @@ async def test_collector_connection(
         success=success,
         message=message,
     )
+
+
+from pydantic import BaseModel, Field
+from services.network_discovery_service import scan_subnet_ip_range
+from api.deps import get_current_user
+from models.user import User
+
+
+class SubnetScanRequest(BaseModel):
+    cidr: str = Field(..., example="10.10.0.0/24", description="CIDR subnet range to auto-scan")
+
+
+@router.post("/scan-subnet")
+async def trigger_subnet_scan(
+    body: SubnetScanRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Auto-scan an entire IP Subnet (e.g. 10.10.0.0/24) for active servers and register discovered nodes into Inventory."""
+    try:
+        res = await scan_subnet_ip_range(db=db, cidr=body.cidr, username=current_user.username)
+        return res
+    except ValueError as err:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(err),
+        )
