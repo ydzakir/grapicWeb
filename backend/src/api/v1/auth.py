@@ -47,20 +47,19 @@ async def get_auth_providers():
     )
 
 
-@router.post("/login", response_model=TokenResponse)
-async def login(
+async def _process_login(
+    username_or_email: str,
+    password: str,
     request: Request,
     response: Response,
-    body: LoginRequest,
-    db: AsyncSession = Depends(get_db),
-):
-    """Authenticate user, return JWT, set secure HttpOnly cookie, and log audit event."""
+    db: AsyncSession,
+) -> TokenResponse:
     client_ip = request.client.host if request.client else "unknown"
 
-    if is_rate_limited(client_ip, body.username_or_email):
+    if is_rate_limited(client_ip, username_or_email):
         await log_audit_event(
             db,
-            actor_username=body.username_or_email,
+            actor_username=username_or_email,
             action="login_blocked_rate_limit",
             ip_address=client_ip,
         )
@@ -72,12 +71,12 @@ async def login(
             },
         )
 
-    user = await authenticate_user(db, body.username_or_email, body.password)
+    user = await authenticate_user(db, username_or_email, password)
     if not user:
-        record_failed_attempt(client_ip, body.username_or_email)
+        record_failed_attempt(client_ip, username_or_email)
         await log_audit_event(
             db,
-            actor_username=body.username_or_email,
+            actor_username=username_or_email,
             action="login_failure",
             ip_address=client_ip,
             metadata={"reason": "invalid_credentials"},
@@ -90,7 +89,7 @@ async def login(
             },
         )
 
-    clear_failed_attempts(client_ip, body.username_or_email)
+    clear_failed_attempts(client_ip, username_or_email)
     access_token = create_access_token(subject=str(user.id), role=user.role.value)
 
     # Set secure HttpOnly cookie
@@ -117,6 +116,49 @@ async def login(
         token_type="bearer",
         user=UserResponse.model_validate(user),
     )
+
+
+@router.post("/login", response_model=TokenResponse)
+async def login(
+    request: Request,
+    response: Response,
+    body: LoginRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Authenticate user via JSON body, return JWT token."""
+    return await _process_login(body.username_or_email, body.password, request, response, db)
+
+
+@router.post("/token", response_model=TokenResponse)
+async def token_endpoint(
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
+    """Authenticate user via Form Data or JSON body (OAuth2 standard token endpoint)."""
+    content_type = request.headers.get("content-type", "")
+    username = ""
+    password = ""
+
+    if "application/x-www-form-urlencoded" in content_type or "multipart/form-data" in content_type:
+        form = await request.form()
+        username = str(form.get("username", ""))
+        password = str(form.get("password", ""))
+    else:
+        try:
+            body = await request.json()
+            username = body.get("username_or_email") or body.get("username", "")
+            password = body.get("password", "")
+        except Exception:
+            pass
+
+    if not username or not password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "INVALID_INPUT", "message": "Username and password required"},
+        )
+
+    return await _process_login(username, password, request, response, db)
 
 
 @router.post("/ldap/login", response_model=TokenResponse)
