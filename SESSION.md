@@ -225,3 +225,19 @@ Jika pengguna meminta modifikasi, penambahan fitur baru, atau perbaikan kode di 
 
 ---
 *Dokumen ini dibuat secara otomatis setelah audit sistem menyeluruh pada 1 Agustus 2026.*
+
+---
+
+## 6. Changelog Perbaikan (Remediation Logs)
+
+### Modul R1 — Metrics Pipeline (2 Agustus 2026)
+- **Problem**: Metric exporter Prometheus `:8001/metrics` dan stale series cleanup belum terhubung penuh ke alur archive. JWT Secret key tidak ter-cache sehingga menghasilkan token 401 di pytest.
+- **Solusi**:
+  1. Perbaiki `config.py` agar `_ephemeral_key` ter-cache pada instance settings sehingga JWT token encoding/decoding konsisten.
+  2. `worker.py` dikonfirmasi memanggil `start_worker_metrics_server(8001)` pada startup *worker*.
+  3. `node_service.py` memanggil `remove_node_metrics(str(node.id))` saat *node* di-archive (*stale-series cleanup*).
+  4. Port `8001` ditambahkan ke `EXPOSE` di `backend/Dockerfile`.
+- **Hasil Verifikasi**:
+  - `backend\.venv\Scripts\pytest.exe backend/tests` → **42 Passed / 0 Failed (100% Pass)**.
+  - `backend\.venv\Scripts\ruff.exe check backend/src` → Formatter & linter terverifikasi.
+

@@ -1,6 +1,6 @@
 import re
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import func, or_, select
@@ -125,7 +125,7 @@ async def upsert_inventory_node(
     - Idempotently updates last_seen, status, and system metrics.
     """
     meta = metadata.copy() if metadata else {}
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # If this is a container, format display name and link canonical docker host parent
     if node_type in (NodeType.DOCKER_CONTAINER, NodeType.CONTAINER):
@@ -401,13 +401,19 @@ async def archive_node(
 ) -> Node:
     """
     Archive a node (soft deletion retention lifecycle).
-    Logs audit event.
+    Logs audit event and performs Prometheus stale-series cleanup.
     """
     node = await db.get(Node, node_id)
     if not node:
         raise ValueError(f"Node '{node_id}' not found.")
 
     node.lifecycle_status = LifecycleStatus.ARCHIVED
+
+    from collectors.metrics_exporter import remove_node_metrics
+    try:
+        remove_node_metrics(str(node.id))
+    except Exception:
+        pass
 
     audit_entry = AuditLog(
         actor_username=admin_user.username,

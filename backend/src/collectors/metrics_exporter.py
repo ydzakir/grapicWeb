@@ -1,5 +1,4 @@
 import logging
-from typing import Any
 
 from prometheus_client import CollectorRegistry, Gauge, start_http_server
 
@@ -15,15 +14,15 @@ CPU_USAGE = Gauge(
     ["node_id"],
     registry=collector_registry,
 )
-RAM_USAGE_BYTES = Gauge(
-    "infra_ram_usage_bytes",
-    "RAM usage in bytes",
+RAM_USAGE_PERCENT = Gauge(
+    "infra_ram_usage_percent",
+    "RAM usage percentage (0.0 to 100.0)",
     ["node_id"],
     registry=collector_registry,
 )
-DISK_USAGE_BYTES = Gauge(
-    "infra_disk_usage_bytes",
-    "Disk usage in bytes",
+DISK_USAGE_PERCENT = Gauge(
+    "infra_disk_usage_percent",
+    "Disk usage percentage (0.0 to 100.0)",
     ["node_id"],
     registry=collector_registry,
 )
@@ -58,8 +57,8 @@ def update_node_metrics(
     node_id: str,
     status: str,
     cpu_usage_ratio: float | None = None,
-    ram_usage_bytes: int | None = None,
-    disk_usage_bytes: int | None = None,
+    ram_usage_percent: float | None = None,
+    disk_usage_percent: float | None = None,
     network_in_bytes: int | None = None,
     network_out_bytes: int | None = None,
 ) -> None:
@@ -71,10 +70,10 @@ def update_node_metrics(
 
     if cpu_usage_ratio is not None:
         CPU_USAGE.labels(node_id=node_id).set(cpu_usage_ratio)
-    if ram_usage_bytes is not None:
-        RAM_USAGE_BYTES.labels(node_id=node_id).set(ram_usage_bytes)
-    if disk_usage_bytes is not None:
-        DISK_USAGE_BYTES.labels(node_id=node_id).set(disk_usage_bytes)
+    if ram_usage_percent is not None:
+        RAM_USAGE_PERCENT.labels(node_id=node_id).set(ram_usage_percent)
+    if disk_usage_percent is not None:
+        DISK_USAGE_PERCENT.labels(node_id=node_id).set(disk_usage_percent)
     if network_in_bytes is not None:
         NETWORK_IN_BYTES.labels(node_id=node_id).set(network_in_bytes)
     if network_out_bytes is not None:
@@ -87,8 +86,8 @@ def remove_node_metrics(node_id: str) -> None:
     """
     for gauge in (
         CPU_USAGE,
-        RAM_USAGE_BYTES,
-        DISK_USAGE_BYTES,
+        RAM_USAGE_PERCENT,
+        DISK_USAGE_PERCENT,
         NETWORK_IN_BYTES,
         NETWORK_OUT_BYTES,
         NODE_STATUS,

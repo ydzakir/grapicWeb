@@ -1,3 +1,4 @@
+import secrets
 from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -30,10 +31,29 @@ class Settings(BaseSettings):
         return f"postgresql+psycopg2://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
     # Auth & Security
-    SECRET_KEY: str = "change_this_to_a_secure_random_64_char_string_for_production"
+    SECRET_KEY: str = ""
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
     BOOTSTRAP_ADMIN_EMAIL: str = "admin@infra.com"
     BOOTSTRAP_ADMIN_PASSWORD: str = "AdminSecurePass123!"
+
+    _ephemeral_key: str | None = None
+
+    def _require_secure_secret(self) -> str:
+        """Refuse to run in production without an explicitly configured secret."""
+        if not self.SECRET_KEY or "change_this" in self.SECRET_KEY:
+            if self.ENVIRONMENT == "production":
+                raise RuntimeError(
+                    "SECRET_KEY must be set to a strong random value in production. "
+                    "Generate one with: python -c \"import secrets; print(secrets.token_hex(64))\""
+                )
+            if not self._ephemeral_key:
+                self._ephemeral_key = secrets.token_hex(64)
+            return self._ephemeral_key
+        return self.SECRET_KEY
+
+    @property
+    def jwt_secret_key(self) -> str:
+        return self._require_secure_secret()
 
     # External Services
     PROMETHEUS_URL: str = "http://prometheus:9090"
