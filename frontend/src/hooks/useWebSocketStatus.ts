@@ -19,7 +19,7 @@ export function useWebSocketStatus() {
 
     setConnectionStatus('connecting');
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws/status?token=${encodeURIComponent(token)}`;
+    const wsUrl = `${protocol}//${window.location.host}/api/v1/ws/status?token=${encodeURIComponent(token)}`;
 
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;

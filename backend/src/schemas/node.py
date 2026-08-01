@@ -119,9 +119,18 @@ class DataCenterResponse(BaseModel):
     status: NodeStatus
     review_status: ReviewStatus
     lifecycle_status: LifecycleStatus
-    metadata: dict[str, Any]
+    metadata: dict[str, Any] = Field(default_factory=dict, validation_alias="metadata_")
     created_at: datetime
     updated_at: datetime
+
+    @field_validator("metadata", mode="before")
+    @classmethod
+    def convert_metadata(cls, v: Any) -> dict[str, Any]:
+        if v is None:
+            return {}
+        if isinstance(v, dict):
+            return v
+        return {}
 
 
 class AssignHostsRequest(BaseModel):

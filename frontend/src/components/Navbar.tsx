@@ -72,7 +72,7 @@ export const Navbar: React.FC = () => {
             ) : (
               <>
                 <WifiOff className="ws-icon" />
-                <span>{connectionStatus}</span>
+                <span>{connectionStatus === 'connecting' ? 'Connecting...' : 'WS Offline'}</span>
               </>
             )}
           </div>

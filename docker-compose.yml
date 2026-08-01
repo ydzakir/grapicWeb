@@ -68,6 +68,7 @@ services:
       PROMETHEUS_URL: http://prometheus:9090
     networks:
       - internal_network
+      - public_network
     depends_on:
       postgres:
         condition: service_healthy
@@ -98,6 +99,7 @@ services:
       ENVIRONMENT: ${ENVIRONMENT:-development}
     networks:
       - internal_network
+      - public_network
     depends_on:
       postgres:
         condition: service_healthy

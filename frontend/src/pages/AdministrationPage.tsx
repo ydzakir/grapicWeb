@@ -97,7 +97,7 @@ export const AdministrationPage: React.FC = () => {
   // Fetch Collector Targets
   const { data: targets, isLoading: isLoadingTargets } = useQuery<CollectorTarget[]>({
     queryKey: ['collector-targets'],
-    queryFn: () => apiClient.get<CollectorTarget[]>('/collectors/targets'),
+    queryFn: () => apiClient.get<CollectorTarget[]>('/collectors'),
   });
 
   // Fetch Data Centers
@@ -168,7 +168,7 @@ export const AdministrationPage: React.FC = () => {
 
   // Create Collector Target Mutation
   const createTargetMutation = useMutation({
-    mutationFn: (body: any) => apiClient.post<CollectorTarget>('/collectors/targets', body),
+    mutationFn: (body: any) => apiClient.post<CollectorTarget>('/collectors', body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['collector-targets'] });
       setIsAddTargetModalOpen(false);
@@ -179,7 +179,7 @@ export const AdministrationPage: React.FC = () => {
   // Test Connection Mutation
   const testConnectionMutation = useMutation({
     mutationFn: (targetId: string) =>
-      apiClient.post<{ status: string; message: string }>(`/collectors/targets/${targetId}/test-connection`),
+      apiClient.post<{ status: string; message: string }>(`/collectors/${targetId}/test-connection`),
     onSuccess: (data, targetId) => {
       setTestResult({ id: targetId, status: data.status, message: data.message });
       queryClient.invalidateQueries({ queryKey: ['collector-targets'] });
@@ -313,8 +313,8 @@ export const AdministrationPage: React.FC = () => {
     createTargetMutation.mutate({
       name: targetName,
       target_type: targetType,
-      host_or_url: hostUrl,
-      port: port ? Number(port) : null,
+      host: hostUrl,
+      port: port ? Number(port) : (targetType === 'ssh' ? 22 : targetType === 'docker' ? 2376 : 5986),
       credential_reference: credRef || 'default_key',
       poll_interval_seconds: 60,
     });
@@ -381,14 +381,18 @@ export const AdministrationPage: React.FC = () => {
   const handleDownloadReport = async () => {
     setIsGeneratingReport(true);
     try {
-      const endpoint = reportFormat === 'pdf' ? '/reports/download/pdf' : '/reports/download/excel';
-      const response = await apiClient.get<Blob>(`${endpoint}?report_type=${reportType}`, {
+      const genRes = await apiClient.post<{ download_url: string; filename: string }>('/reports/generate', {
+        report_type: reportType,
+        format: reportFormat,
+      });
+      const downloadUrl = genRes.download_url;
+      const response = await apiClient.get<Blob>(downloadUrl, {
         responseType: 'blob',
       });
       const url = window.URL.createObjectURL(new Blob([response]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `Infrastructure_Report_${reportType}_${Date.now()}.${reportFormat === 'pdf' ? 'pdf' : 'xlsx'}`);
+      link.setAttribute('download', genRes.filename || `Report_${reportType}.${reportFormat === 'pdf' ? 'pdf' : 'xlsx'}`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -500,10 +504,10 @@ export const AdministrationPage: React.FC = () => {
                     <span className={`type-badge ${target.target_type}`}>{target.target_type.toUpperCase()}</span>
                   </div>
                   <div className="card-body">
-                    <p><strong>Host/URL:</strong> {target.host_or_url}</p>
+                    <p><strong>Host/URL:</strong> {target.host || (target as any).host_or_url}</p>
                     {target.port && <p><strong>Port:</strong> {target.port}</p>}
                     <p><strong>Poll Interval:</strong> {target.poll_interval_seconds}s</p>
-                    <p><strong>Status:</strong> {target.is_enabled ? 'Enabled' : 'Disabled'}</p>
+                    <p><strong>Status:</strong> {target.enabled !== false ? 'Enabled' : 'Disabled'}</p>
 
                     {testResult && testResult.id === target.id && (
                       <div className={`test-feedback ${testResult.status}`}>

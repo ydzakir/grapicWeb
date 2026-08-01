@@ -71,76 +71,60 @@ export const CloudflareEdgeCard: React.FC = () => {
   };
 
   return (
-    <div className="bg-slate-900/80 backdrop-blur border border-slate-800 rounded-xl p-5 shadow-lg">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 font-bold text-lg">
+    <div style={{ padding: '16px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: 'rgba(249, 115, 22, 0.15)', border: '1px solid rgba(249, 115, 22, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f97316', fontWeight: 'bold', fontSize: '1rem' }}>
             CF
           </div>
           <div>
-            <h3 className="text-base font-semibold text-slate-100 flex items-center gap-2">
+            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
               Cloudflare Edge Status
             </h3>
-            <p className="text-xs text-slate-400">Global CDN, WAF & Anycast Network Probe</p>
+            <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)' }}>Global CDN, WAF &amp; Anycast Network Probe</p>
           </div>
         </div>
         <button
           onClick={handleSync}
           disabled={syncing}
-          className="px-3 py-1.5 text-xs font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition-all flex items-center gap-1.5 disabled:opacity-50"
+          className="btn-secondary btn-sm"
+          style={{ fontSize: '0.8rem', padding: '6px 12px' }}
         >
-          {syncing ? (
-            <>
-              <span className="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></span>
-              Syncing...
-            </>
-          ) : (
-            'Sync Now'
-          )}
+          {syncing ? 'Syncing...' : 'Sync Now'}
         </button>
       </div>
 
       {loading ? (
-        <div className="py-6 text-center text-slate-400 text-sm animate-pulse">
+        <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
           Probing Cloudflare Edge Status...
         </div>
       ) : error ? (
-        <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs rounded-lg">
-          {error}
+        <div className="test-feedback error" style={{ padding: '8px 12px' }}>
+          <span>{error}</span>
         </div>
       ) : statusSummary ? (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg border border-slate-800">
-            <span className="text-sm font-medium text-slate-300">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-subtle)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-main)' }}>
               {statusSummary.global_description}
             </span>
-            <span
-              className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${getBadgeClass(
-                statusSummary.global_indicator
-              )}`}
-            >
+            <span className="badge badge-up" style={{ fontSize: '0.75rem', padding: '4px 10px' }}>
               {getStatusText(statusSummary.global_indicator)}
             </span>
           </div>
 
           {/* Component Breakdowns */}
           {statusSummary.components.length > 0 && (
-            <div className="grid grid-cols-2 gap-2">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '10px' }}>
               {statusSummary.components.map((comp) => (
                 <div
                   key={comp.id}
-                  className="p-2.5 bg-slate-800/30 rounded-lg border border-slate-800/80 flex items-center justify-between"
+                  style={{ padding: '10px 12px', background: 'var(--bg-subtle)', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}
                 >
-                  <span className="text-xs text-slate-300 truncate pr-2" title={comp.name}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={comp.name}>
                     {comp.name}
                   </span>
-                  <span
-                    className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${
-                      comp.status === 'operational'
-                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                        : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                    }`}
-                  >
+                  <span className={`badge ${comp.status === 'operational' ? 'badge-up' : 'badge-warning'}`} style={{ fontSize: '0.7rem', padding: '2px 8px', textTransform: 'uppercase' }}>
                     {comp.status}
                   </span>
                 </div>
@@ -150,13 +134,13 @@ export const CloudflareEdgeCard: React.FC = () => {
 
           {/* Active Incidents Banner */}
           {statusSummary.incidents.length > 0 && (
-            <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg space-y-1">
-              <span className="text-xs font-bold text-amber-400 uppercase tracking-wider block">
+            <div style={{ padding: '10px 14px', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '8px' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#f59e0b', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
                 Active Incident Alert
               </span>
               {statusSummary.incidents.map((inc) => (
-                <div key={inc.id} className="text-xs text-slate-300">
-                  • <span className="font-semibold text-slate-200">{inc.name}</span> ({inc.status})
+                <div key={inc.id} style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  • <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{inc.name}</span> ({inc.status})
                 </div>
               ))}
             </div>
