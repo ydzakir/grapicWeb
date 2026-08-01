@@ -16,7 +16,7 @@ Dokumen pelacakan tugas untuk perencanaan dan implementasi **Versi 2.0** aplikas
 - [x] Auto-provisioning User Profile & Role Mapping
 - [x] Single Sign-On Flow & Fallback Authentication
 
-### [x] Subproyek 3 — Laporan Rekapitulasi Historis PDF & Excel
+### [x] Subproyek 3 — Laporan Rekapitulasi Historis PDF & Excel (**SELESAI & TERUJI 100%**)
 - [x] Generator Laporan PDF (Uptime Summary, Incident Log, Asset Inventory)
 - [x] Generator Export Data Excel / CSV
 - [x] Endpoint REST API Download Laporan
@@ -26,7 +26,7 @@ Dokumen pelacakan tugas untuk perencanaan dan implementasi **Versi 2.0** aplikas
 - [x] Template Email Laporan Eksekutif HTML
 - [x] Dashboard Pengaturan Jadwal Laporan
 
-### [x] Subproyek 5 — Topology History & Time-Travel Change Comparison
+### [x] Subproyek 5 — Topology History & Time-Travel Change Comparison (**SELESAI & TERUJI 100%**)
 - [x] Engine Versioning Snapshot Topologi (Diff Canvas)
 - [x] UI Visualisasi Perbandingan Topologi Antar Waktu (Time-Travel Viewer)
 - [x] Audit Log Perubahan Relasi & Perangkat
