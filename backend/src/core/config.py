@@ -83,6 +83,16 @@ class Settings(BaseSettings):
     METRICS_COLLECT_INTERVAL_SECONDS: int = 60
     COLLECTOR_TIMEOUT_SECONDS: int = 10
 
+    # Notification & Alerting Settings
+    NOTIFICATION_PROVIDER: str = "log"
+    ALERT_WEBHOOK_URL: str = ""
+    SMTP_HOST: str = "localhost"
+    SMTP_PORT: int = 25
+    SMTP_USER: str = ""
+    SMTP_PASS: str = ""
+    SMTP_FROM: str = "noreply@monitoring.infra"
+    SMTP_TO: str = "admin@infra.com"
+
 
 settings = Settings()
 

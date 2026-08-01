@@ -1,12 +1,12 @@
 import uuid
-from datetime import datetime, timezone, timedelta
-from typing import List, Optional
-from sqlalchemy import select, and_, or_
+from datetime import UTC, datetime
+
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.alert import Alert, AlertRule, AlertSeverity, AlertStatus
-from models.node import Node, NodeStatus
+from models.alert import Alert, AlertSeverity, AlertStatus
 from models.audit import AuditLog
+from models.node import Node, NodeStatus
 from services.notification_service import get_notification_provider
 
 DEDUPLICATION_WINDOW_SECONDS = 900 # 15 minutes
@@ -14,16 +14,32 @@ ESCALATION_WINDOW_SECONDS = 900     # 15 minutes
 
 
 def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
+
+
+def get_active_notification_provider():
+    """Retrieve configured notification provider based on environment settings."""
+    from core.config import settings
+    provider_type = getattr(settings, "NOTIFICATION_PROVIDER", "log")
+    config = {
+        "webhook_url": getattr(settings, "ALERT_WEBHOOK_URL", ""),
+        "smtp_host": getattr(settings, "SMTP_HOST", "localhost"),
+        "smtp_port": getattr(settings, "SMTP_PORT", 25),
+        "smtp_user": getattr(settings, "SMTP_USER", ""),
+        "smtp_pass": getattr(settings, "SMTP_PASS", ""),
+        "smtp_from": getattr(settings, "SMTP_FROM", "noreply@monitoring.infra"),
+        "to_email": getattr(settings, "SMTP_TO", "admin@infra.com"),
+    }
+    return get_notification_provider(provider_type, config)
 
 
 async def evaluate_node_telemetry_alerts(
     db: AsyncSession,
     node: Node,
-    cpu_usage: Optional[float] = None,
-    ram_usage: Optional[float] = None,
-    disk_usage: Optional[float] = None,
-) -> List[Alert]:
+    cpu_usage: float | None = None,
+    ram_usage: float | None = None,
+    disk_usage: float | None = None,
+) -> list[Alert]:
     """
     Evaluates node metrics against default/custom threshold alert rules:
     - CPU: Warning >85%, Critical >95%
@@ -46,7 +62,7 @@ async def evaluate_node_telemetry_alerts(
             continue
 
         # Determine severity if threshold breached
-        severity: Optional[AlertSeverity] = None
+        severity: AlertSeverity | None = None
         if val >= crit_thresh:
             severity = AlertSeverity.CRITICAL
         elif val >= warn_thresh:
@@ -65,7 +81,7 @@ async def evaluate_node_telemetry_alerts(
 
         if severity:
             msg = f"{metric_name.replace('_', ' ').upper()} high on {node.name}: {val:.1f}% (Threshold: {crit_thresh if severity == AlertSeverity.CRITICAL else warn_thresh}%)"
-            
+
             if active_alert:
                 # Deduplication check: 15 minutes window
                 should_notify = False
@@ -100,7 +116,7 @@ async def evaluate_node_telemetry_alerts(
                             logging.getLogger("alert_service").warning(f"Auto ticketing on escalation failed: {err}")
 
                 if should_notify:
-                    provider = get_notification_provider("log")
+                    provider = get_active_notification_provider()
                     await provider.send_notification(
                         title=f"Alert {severity.value.upper()}",
                         message=msg,
@@ -120,7 +136,7 @@ async def evaluate_node_telemetry_alerts(
                 db.add(new_alert)
                 generated_alerts.append(new_alert)
 
-                provider = get_notification_provider("log")
+                provider = get_active_notification_provider()
                 await provider.send_notification(
                     title=f"New Alert {severity.value.upper()}",
                     message=msg,
@@ -133,8 +149,8 @@ async def evaluate_node_telemetry_alerts(
                 active_alert.status = AlertStatus.RESOLVED
                 active_alert.resolved_at = now
                 resolve_msg = f"[RESOLVED] {metric_name.replace('_', ' ').upper()} normalized on {node.name}: {val:.1f}%"
-                
-                provider = get_notification_provider("log")
+
+                provider = get_active_notification_provider()
                 await provider.send_notification(
                     title="Alert RESOLVED",
                     message=resolve_msg,
@@ -142,7 +158,7 @@ async def evaluate_node_telemetry_alerts(
                     details={"node_id": str(node.id), "metric": metric_name, "value": val},
                 )
 
-    # Evaluate Node DOWN > 2 minutes
+    # Evaluate Node DOWN / UP state
     if node.status == NodeStatus.DOWN:
         stmt = select(Alert).where(
             and_(
@@ -167,11 +183,42 @@ async def evaluate_node_telemetry_alerts(
             db.add(new_down_alert)
             generated_alerts.append(new_down_alert)
 
+            provider = get_active_notification_provider()
+            await provider.send_notification(
+                title="Node DOWN CRITICAL",
+                message=down_msg,
+                severity="critical",
+                details={"node_id": str(node.id), "status": "down"},
+            )
+    elif node.status == NodeStatus.UP:
+        stmt = select(Alert).where(
+            and_(
+                Alert.node_id == node.id,
+                Alert.status == AlertStatus.FIRING,
+                Alert.message.like("%NODE DOWN%"),
+            )
+        )
+        res = await db.execute(stmt)
+        down_alert = res.scalars().first()
+
+        if down_alert:
+            down_alert.status = AlertStatus.RESOLVED
+            down_alert.resolved_at = now
+            resolve_down_msg = f"[RESOLVED] Node {node.name} ({node.ip_address or 'No IP'}) is back online (UP)."
+
+            provider = get_active_notification_provider()
+            await provider.send_notification(
+                title="Node DOWN RESOLVED",
+                message=resolve_down_msg,
+                severity="info",
+                details={"node_id": str(node.id), "status": "up"},
+            )
+
     await db.flush()
     return generated_alerts
 
 
-async def acknowledge_alert(db: AsyncSession, alert_id: uuid.UUID, username: str, note: Optional[str] = None) -> Alert:
+async def acknowledge_alert(db: AsyncSession, alert_id: uuid.UUID, username: str, note: str | None = None) -> Alert:
     """Acknowledge a firing alert with audit trail logging."""
     alert = await db.get(Alert, alert_id)
     if not alert:

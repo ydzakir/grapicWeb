@@ -241,3 +241,13 @@ Jika pengguna meminta modifikasi, penambahan fitur baru, atau perbaikan kode di 
   - `backend\.venv\Scripts\pytest.exe backend/tests` → **42 Passed / 0 Failed (100% Pass)**.
   - `backend\.venv\Scripts\ruff.exe check backend/src` → Formatter & linter terverifikasi.
 
+### Modul R2 — Alert Engine Wiring (2 Agustus 2026)
+- **Problem**: Notification provider di hardcode `"log"` pada `alert_service.py`, dan notifikasi/auto-resolution untuk status node `DOWN`/`UP` belum lengkap.
+- **Solusi**:
+  1. `config.py` diperbarui dengan parameter konfigurasi notifikasi (`NOTIFICATION_PROVIDER`, `ALERT_WEBHOOK_URL`, `SMTP_*`).
+  2. `alert_service.py` dikonfigurasikan menggunakan `get_active_notification_provider()` secara dinamis sesuai environment.
+  3. Ditambahkan penanganan notifikasi otomatis saat node `DOWN` serta auto-resolution saat status node kembali `UP`.
+- **Hasil Verifikasi**:
+  - `backend\.venv\Scripts\pytest.exe backend/tests` → **42 Passed / 0 Failed (100% Pass)**.
+
+
