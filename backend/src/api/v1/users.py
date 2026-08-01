@@ -166,7 +166,7 @@ async def update_user(
         actor_username=current_user.username,
         action="USER_UPDATED",
         target=user.username,
-        metadata_={"role": user.role.value},
+        metadata={"role": user.role.value},
     )
 
     return _format_user_response(user)
