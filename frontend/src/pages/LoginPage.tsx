@@ -68,6 +68,7 @@ export const LoginPage: React.FC = () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: formData.toString(),
+          credentials: 'include',
         });
 
         if (!resp.ok) {
@@ -78,9 +79,10 @@ export const LoginPage: React.FC = () => {
       }
 
       const token = data.access_token;
-      // Fetch user profile
+      // Fetch user profile using the HttpOnly cookie / bearer token
       const userResp = await fetch('/api/v1/auth/me', {
         headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       const userData = await userResp.json();
 
@@ -194,8 +196,7 @@ export const LoginPage: React.FC = () => {
 
         <div className="login-footer">
           <p className="demo-hint">
-            <strong>Default Admin Demo:</strong> <code>admin@infra.com</code> / <code>AdminSecurePass123!</code><br />
-            <strong>LDAP Demo:</strong> <code>ldapuser</code> / <code>LdapSecurePass123!</code>
+            Development demo credentials are configured via <code>BOOTSTRAP_ADMIN_PASSWORD</code> in the backend environment.
           </p>
         </div>
       </div>

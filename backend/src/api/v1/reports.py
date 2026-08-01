@@ -1,19 +1,18 @@
 import os
 import uuid
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from sqlalchemy import select, desc
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.deps import get_current_user, get_db, require_role
+from api.deps import get_current_user, get_db, require_granular_permission, require_role
 from models.report_schedule import ReportSchedule
 from models.user import User, UserRole
 from schemas.report_schedule import (
     ReportScheduleCreate,
     ReportScheduleResponse,
-    ReportScheduleUpdate,
 )
 from services.report_scheduler_service import (
     calculate_next_run_at,
@@ -23,6 +22,7 @@ from services.report_scheduler_service import (
 from services.report_service import REPORTS_DIR, generate_excel_report, generate_pdf_report
 
 require_admin_role = require_role([UserRole.ADMIN])
+require_report_export = require_granular_permission("reports:export")
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
 
@@ -36,7 +36,7 @@ class ReportGenerateRequest(BaseModel):
 async def generate_report_endpoint(
     body: ReportGenerateRequest,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_report_export),
 ):
     """Generate Executive Report PDF or Excel File."""
     fmt = body.format.lower()
@@ -58,7 +58,7 @@ async def generate_report_endpoint(
 @router.get("/download/{filename}")
 async def download_report_file(
     filename: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_report_export),
 ):
     """Download generated report document."""
     filepath = os.path.join(REPORTS_DIR, filename)
@@ -75,7 +75,7 @@ async def download_report_file(
 
 # --- REPORT SCHEDULE ENDPOINTS ---
 
-@router.get("/schedules", response_model=List[ReportScheduleResponse])
+@router.get("/schedules", response_model=list[ReportScheduleResponse])
 async def list_report_schedules(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),

@@ -192,9 +192,10 @@ async def test_collector_connection(
 
 
 from pydantic import BaseModel, Field
-from services.network_discovery_service import scan_subnet_ip_range
+
 from api.deps import get_current_user
 from models.user import User
+from services.network_discovery_service import scan_subnet_ip_range
 
 
 class SubnetScanRequest(BaseModel):

@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
-from typing import Any
-from sqlalchemy import select, and_
+
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from collectors.cloudflare_collector import (
@@ -9,7 +9,6 @@ from collectors.cloudflare_collector import (
 )
 from models.alert import Alert, AlertSeverity, AlertStatus
 from models.node import Node, NodeStatus, NodeType, ReviewStatus
-
 
 _cloudflare_cache: CloudflareStatusSummary | None = None
 _last_sync_time: datetime | None = None

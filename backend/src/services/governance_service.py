@@ -1,10 +1,10 @@
 import hashlib
 import logging
 import uuid
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
-from sqlalchemy import select, desc
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.audit import AuditLog
@@ -16,7 +16,7 @@ logger = logging.getLogger("governance_service")
 
 
 def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 async def create_quarterly_audit_campaign(
@@ -83,8 +83,8 @@ async def submit_review_decision(
     review_id: uuid.UUID,
     user_id: str,
     decision: str,
-    new_role: Optional[str],
-    notes: Optional[str],
+    new_role: str | None,
+    notes: str | None,
     reviewer_username: str,
 ) -> QuarterlyAuditReview:
     """Submits or updates an access review decision for a single user in a campaign."""
@@ -105,7 +105,7 @@ async def submit_review_decision(
         "reviewed_by": reviewer_username,
         "reviewed_at": utc_now().isoformat(),
     }
-    
+
     # Re-assign dict to trigger SQLAlchemy JSON modification tracking
     campaign.review_decisions = current_decisions
 
@@ -118,7 +118,7 @@ async def executive_signoff(
     db: AsyncSession,
     review_id: uuid.UUID,
     signoff_by: str,
-    comments: Optional[str] = None,
+    comments: str | None = None,
 ) -> QuarterlyAuditReview:
     """Executes formal executive sign-off for a quarterly audit review with digital signature."""
     campaign = await db.get(QuarterlyAuditReview, review_id)
@@ -153,7 +153,7 @@ async def executive_signoff(
     return campaign
 
 
-async def process_reviewer_escalations(db: AsyncSession) -> List[QuarterlyAuditReview]:
+async def process_reviewer_escalations(db: AsyncSession) -> list[QuarterlyAuditReview]:
     """
     Evaluates pending audit campaigns:
     1. Sends notification reminders if nearing due date.
@@ -192,7 +192,7 @@ async def process_reviewer_escalations(db: AsyncSession) -> List[QuarterlyAuditR
 async def generate_compliance_report(
     db: AsyncSession,
     review_id: uuid.UUID,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Generates an executive compliance report for a specific quarterly audit campaign."""
     campaign = await db.get(QuarterlyAuditReview, review_id)
     if not campaign:

@@ -1,20 +1,20 @@
 import re
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Tuple
-from sqlalchemy import select, and_
+from datetime import UTC, datetime
+from typing import Any
+
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.network import NetworkEdge, EdgeConfidenceLevel, Subnet
-from models.node import Node
 from models.audit import AuditLog
+from models.network import EdgeConfidenceLevel, NetworkEdge
 
 
 def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
-def parse_arp_table_output(raw_output: str) -> List[Tuple[str, str]]:
+def parse_arp_table_output(raw_output: str) -> list[tuple[str, str]]:
     """
     Parses ARP table output string into (ip_address, mac_address) tuples.
     Format example: "192.168.1.100  00-15-5d-01-02-03  dynamic"
@@ -31,7 +31,7 @@ def parse_arp_table_output(raw_output: str) -> List[Tuple[str, str]]:
     return entries
 
 
-async def discover_snmp_interfaces(host_or_ip: str) -> List[Dict[str, Any]]:
+async def discover_snmp_interfaces(host_or_ip: str) -> list[dict[str, Any]]:
     """
     Simulates / extracts SNMP interface table data.
     """
@@ -52,7 +52,7 @@ async def create_manual_network_edge(
     Creates a manual network mapping fallback edge with audit log tracking.
     """
     now = utc_now()
-    
+
     # Check if edge already exists
     stmt = select(NetworkEdge).where(
         and_(
@@ -96,7 +96,8 @@ async def create_manual_network_edge(
 
 import asyncio
 import ipaddress
-from models.node import NodeType, NodeStatus, ReviewStatus, LifecycleStatus
+
+from models.node import NodeStatus, NodeType
 from services.node_service import upsert_inventory_node
 
 
@@ -132,7 +133,7 @@ async def probe_ip_host(ip_str: str) -> dict[str, Any] | None:
                 "os": os_hint,
                 "status": "up",
             }
-        except (OSError, asyncio.TimeoutError):
+        except (TimeoutError, OSError):
             continue
 
     return None

@@ -7,6 +7,7 @@ from starlette.testclient import TestClient
 from collectors.metrics_exporter import (
     CPU_USAGE,
     NODE_STATUS,
+    RAM_USAGE_PERCENT,
     remove_node_metrics,
     update_node_metrics,
 )
@@ -26,11 +27,15 @@ async def test_worker_metrics_exporter_and_stale_cleanup():
         node_id=test_node_id,
         status="up",
         cpu_usage_ratio=0.45,
-        ram_usage_bytes=1073741824,
+        ram_usage_percent=62.0,
+        disk_usage_percent=45.2,
     )
 
     # Check metric values in registry
     assert (test_node_id,) in NODE_STATUS._metrics
+    assert (test_node_id,) in CPU_USAGE._metrics
+    assert (test_node_id,) in RAM_USAGE_PERCENT._metrics
+    assert float(CPU_USAGE._metrics[(test_node_id,)]._value.get()) == 0.45
 
     # Stale series cleanup
     remove_node_metrics(test_node_id)

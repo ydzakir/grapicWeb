@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger("ldap_driver")
 
@@ -13,11 +13,11 @@ class LdapAuthDriver:
 
     def __init__(
         self,
-        server_uri: Optional[str] = None,
-        base_dn: Optional[str] = None,
-        bind_dn: Optional[str] = None,
-        bind_password: Optional[str] = None,
-        user_filter: Optional[str] = None,
+        server_uri: str | None = None,
+        base_dn: str | None = None,
+        bind_dn: str | None = None,
+        bind_password: str | None = None,
+        user_filter: str | None = None,
     ):
         self.server_uri = server_uri or os.getenv("LDAP_SERVER", "ldap://127.0.0.1:389")
         self.base_dn = base_dn or os.getenv("LDAP_BASE_DN", "dc=company,dc=internal")
@@ -26,7 +26,7 @@ class LdapAuthDriver:
         self.user_filter = user_filter or os.getenv("LDAP_USER_SEARCH_FILTER", "(sAMAccountName={username})")
         self.is_enabled = os.getenv("LDAP_ENABLED", "true").lower() in ("true", "1", "yes")
 
-    async def authenticate(self, username: str, password: str) -> Optional[Dict[str, Any]]:
+    async def authenticate(self, username: str, password: str) -> dict[str, Any] | None:
         """
         Authenticates a user against LDAP directory service.
         Returns dictionary of user attributes & groups if successful, None otherwise.
@@ -40,7 +40,7 @@ class LdapAuthDriver:
         # Real LDAP library connection attempt or simulated fallback
         try:
             # Check if real python-ldap3 or ldap library is available
-            import ldap3 # type: ignore
+            import ldap3  # type: ignore
             server = ldap3.Server(self.server_uri, get_info=ldap3.ALL)
             conn = ldap3.Connection(server, user=f"uid={clean_user},{self.base_dn}", password=password, auto_bind=True)
             if conn.bound:

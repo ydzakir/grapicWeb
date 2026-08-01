@@ -1,8 +1,8 @@
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from typing import Any
 
-from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from models.node import ConnectionType, LifecycleStatus, NodeStatus, NodeType, ReviewStatus

@@ -1,6 +1,6 @@
 import enum
-
 from typing import Any
+
 from sqlalchemy import JSON, Boolean, String
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import JSONB

@@ -6,9 +6,9 @@ from core.audit import log_audit_event
 from core.config import settings
 from core.database import get_db
 from core.security import create_access_token
-from models.user import User
 from core.sso.ldap_driver import LdapAuthDriver
 from core.sso.oidc_driver import OidcAuthDriver
+from models.user import User
 from schemas.auth import LoginRequest, TokenResponse, UserResponse
 from schemas.sso import (
     AuthProviderStatusResponse,

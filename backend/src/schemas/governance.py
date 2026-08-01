@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -14,12 +15,12 @@ class AuditReviewCreateRequest(BaseModel):
 class ReviewDecisionSubmit(BaseModel):
     user_id: str = Field(..., min_length=1)
     decision: str = Field(..., pattern="^(approve|revoke|modify_role)$")
-    new_role: Optional[str] = None
-    notes: Optional[str] = None
+    new_role: str | None = None
+    notes: str | None = None
 
 
 class SignOffRequest(BaseModel):
-    comments: Optional[str] = "Approved and signed off by Compliance Lead"
+    comments: str | None = "Approved and signed off by Compliance Lead"
 
 
 class AuditReviewResponse(BaseModel):
@@ -31,12 +32,12 @@ class AuditReviewResponse(BaseModel):
     status: str
     reviewer_username: str
     due_date: datetime
-    user_snapshots: Dict[str, Any]
-    review_decisions: Dict[str, Any]
-    signoff_by: Optional[str] = None
-    signoff_at: Optional[datetime] = None
-    digital_signature: Optional[str] = None
-    comments: Optional[str] = None
+    user_snapshots: dict[str, Any]
+    review_decisions: dict[str, Any]
+    signoff_by: str | None = None
+    signoff_at: datetime | None = None
+    digital_signature: str | None = None
+    comments: str | None = None
     created_at: datetime
 
 
@@ -51,7 +52,7 @@ class ComplianceReportResponse(BaseModel):
     modified_accounts: int
     pending_accounts: int
     compliance_percentage: float
-    signoff_by: Optional[str] = None
-    signoff_at: Optional[datetime] = None
-    digital_signature: Optional[str] = None
+    signoff_by: str | None = None
+    signoff_at: datetime | None = None
+    digital_signature: str | None = None
     generated_at: datetime

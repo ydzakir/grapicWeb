@@ -103,14 +103,14 @@ export interface MetricSeries {
 export interface CollectorTarget {
   id: string;
   name: string;
-  target_type: 'ssh' | 'winrm' | 'hyperv' | 'docker';
-  host_or_url: string;
+  target_type: 'ssh' | 'winrm' | 'hyperv' | 'docker' | 'docker_tls';
+  host: string;
   port: number | null;
   credential_reference: string;
   poll_interval_seconds: number;
-  is_enabled: boolean;
-  last_test_status: string | null;
-  last_test_message: string | null;
+  enabled: boolean;
+  last_test_status?: string | null;
+  last_test_message?: string | null;
   created_at: string;
   updated_at: string;
 }

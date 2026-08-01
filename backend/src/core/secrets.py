@@ -1,7 +1,6 @@
 import logging
 import os
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from core.vault_client import HashiCorpVaultClient
 
@@ -12,7 +11,7 @@ class BaseSecretProvider(ABC):
     """Abstract Secret Provider boundary for credentials access."""
 
     @abstractmethod
-    def get_secret(self, secret_ref: str) -> Optional[str]:
+    def get_secret(self, secret_ref: str) -> str | None:
         """Resolve a secret reference identifier to its payload."""
         pass
 
@@ -28,7 +27,7 @@ class EnvironmentAndFileSecretProvider(BaseSecretProvider):
     def __init__(self, secrets_dir: str = "/run/secrets"):
         self.secrets_dir = secrets_dir
 
-    def get_secret(self, secret_ref: str) -> Optional[str]:
+    def get_secret(self, secret_ref: str) -> str | None:
         if not secret_ref:
             return None
 
@@ -67,11 +66,11 @@ class HashiCorpVaultSecretProvider(BaseSecretProvider):
     Provides seamless automatic fallback to EnvironmentAndFileSecretProvider.
     """
 
-    def __init__(self, vault_client: Optional[HashiCorpVaultClient] = None):
+    def __init__(self, vault_client: HashiCorpVaultClient | None = None):
         self.client = vault_client or HashiCorpVaultClient()
         self.fallback_provider = EnvironmentAndFileSecretProvider()
 
-    def get_secret(self, secret_ref: str) -> Optional[str]:
+    def get_secret(self, secret_ref: str) -> str | None:
         if not secret_ref:
             return None
 

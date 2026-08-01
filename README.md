@@ -28,9 +28,14 @@ A centralized, enterprise-grade infrastructure monitoring, auto-topology visuali
 
 ---
 
-## 🔐 Default Demo Credentials
+## 🔐 Demo Credentials (Development Only — Change Before Production)
 
-- **Local Admin Account**: `admin@infra.com` (or `admin`) / `AdminSecurePass123!`
+> ⚠️ **Security notice**: The credentials below are for **local development only**. Before any
+> production deployment, replace `BOOTSTRAP_ADMIN_PASSWORD` and `SECRET_KEY` in your `.env`
+> (see `.env.example`). The backend refuses to start in `ENVIRONMENT=production` with a
+> placeholder secret. Demo accounts are created by the bootstrap/seed scripts only.
+
+- **Local Admin Demo**: `admin@infra.com` / `AdminSecurePass123!`
 - **LDAP Demo Account**: `ldapuser` / `LdapSecurePass123!`
 - **Enterprise OIDC SSO**: Click *"Login with Enterprise OIDC / Single Sign-On"* on the login page.
 

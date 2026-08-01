@@ -1,7 +1,7 @@
 import uuid
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, desc
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import get_current_user, get_db, require_role
@@ -62,9 +62,9 @@ async def get_permissions_matrix(current_user: User = Depends(get_current_user))
     )
 
 
-@router.get("", response_model=List[UserDetailResponse])
+@router.get("", response_model=list[UserDetailResponse])
 async def list_users(
-    role: Optional[UserRole] = None,
+    role: UserRole | None = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_admin_role),
 ):

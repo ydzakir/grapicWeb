@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from typing import Any
+
 import httpx
 from pydantic import BaseModel, Field
 

@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Infrastructure Monitoring MVP E2E Smoke Tests', () => {
   test('User can see login page and sign in as Admin', async ({ page }) => {
     await page.goto('/login');
-    await expect(page.locator('h2')).toContainText('InfraTopology MVP');
+    await expect(page.locator('h2')).toContainText('Enterprise Infrastructure Monitoring');
 
     // Fill login credentials
     await page.fill('#username', 'admin@infra.com');

@@ -22,13 +22,17 @@ export const DashboardPage: React.FC = () => {
 
   const items = nodesData?.items || [];
 
-  const totalServers = items.filter(
-    (n) => n.type === 'physical_server' || n.type === 'hyperv_host' || n.type === 'docker_host' || n.type === 'hyperv_vm'
+  // Only approved, active inventory counts toward summary (pending nodes excluded)
+  const approvedItems = items.filter((n) => n.review_status === 'approved');
+
+  // Servers = physical + hypervisor + docker hosts (VMs and containers excluded)
+  const totalServers = approvedItems.filter(
+    (n) => n.type === 'physical_server' || n.type === 'hyperv_host' || n.type === 'docker_host'
   ).length;
 
-  const totalContainers = items.filter((n) => n.type === 'docker_container').length;
+  const totalContainers = approvedItems.filter((n) => n.type === 'docker_container').length;
 
-  const unhealthyNodes = items.filter((n) => n.status === 'down' || n.status === 'warning');
+  const unhealthyNodes = approvedItems.filter((n) => n.status === 'down' || n.status === 'warning');
 
   const pendingApprovals = items.filter((n) => n.review_status === 'pending').length;
 

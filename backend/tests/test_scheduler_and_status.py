@@ -94,6 +94,112 @@ async def test_status_transitions_unknown_to_down_and_recovery(db_session: Async
 
 
 @pytest.mark.asyncio
+async def test_scheduler_publishes_prometheus_metrics(db_session: AsyncSession):
+    from unittest.mock import patch
+
+    from collectors.fake_collector import FakeCollectorAdapter
+    from collectors.metrics_exporter import (
+        CPU_USAGE,
+        NODE_STATUS,
+        remove_node_metrics,
+    )
+
+    scheduler = CollectorScheduler(max_concurrency=1, max_retries=0)
+    target = CollectorTarget(
+        name="Target Metrics",
+        target_type=TargetType.SSH,
+        host="fake-metrics.local",
+        port=22,
+        credential_reference="cred_ref_metrics",
+    )
+    db_session.add(target)
+    await db_session.commit()
+
+    with patch.object(
+        scheduler,
+        "create_adapter",
+        side_effect=lambda t: FakeCollectorAdapter(target_host=t.host),
+    ):
+        result = await scheduler.execute_poll_target(db_session, target)
+
+    assert result is True
+
+    stmt = select(Node).where(
+        Node.metadata_["canonical_identity"].as_string() == "fake_host_fake-metrics.local"
+    )
+    node = (await db_session.execute(stmt)).scalars().first()
+    assert node is not None
+    assert node.status == NodeStatus.UP
+
+    # Node status gauge populated by worker pipeline
+    assert (str(node.id),) in NODE_STATUS._metrics
+    # CPU ratio gauge populated (fake collector returns 35.5% -> 0.355 ratio)
+    assert (str(node.id),) in CPU_USAGE._metrics
+
+    remove_node_metrics(str(node.id))
+
+
+@pytest.mark.asyncio
+async def test_scheduler_publishes_failure_status_after_recovery(db_session: AsyncSession):
+    from unittest.mock import patch
+
+    from collectors.fake_collector import FakeCollectorAdapter
+    from collectors.metrics_exporter import NODE_STATUS, remove_node_metrics
+
+    scheduler = CollectorScheduler(max_concurrency=1, max_retries=0)
+    target = CollectorTarget(
+        name="Target Failure Metrics",
+        target_type=TargetType.SSH,
+        host="fake-fail.local",
+        port=22,
+        credential_reference="cred_ref_fail",
+    )
+    db_session.add(target)
+    await db_session.commit()
+
+    with patch.object(
+        scheduler,
+        "create_adapter",
+        side_effect=lambda t: FakeCollectorAdapter(target_host=t.host),
+    ):
+        # First successful poll discovers the node and publishes UP status
+        ok = await scheduler.execute_poll_target(db_session, target)
+        assert ok is True
+
+        stmt = select(Node).where(
+            Node.metadata_["canonical_identity"].as_string() == "fake_host_fake-fail.local"
+        )
+        node = (await db_session.execute(stmt)).scalars().first()
+        assert node is not None
+
+        # Manually set first failure window to > 2 minutes, then poll a failing adapter
+        from datetime import UTC, datetime, timedelta
+
+        meta = dict(node.metadata_)
+        meta["first_failed_at"] = (datetime.now(UTC) - timedelta(seconds=130)).isoformat()
+        node.metadata_ = meta
+        await db_session.commit()
+
+        with patch.object(
+            scheduler,
+            "create_adapter",
+            side_effect=lambda t: FakeCollectorAdapter(
+                target_host=t.host, simulate_failure_mode="connection_refused"
+            ),
+        ):
+            ok = await scheduler.execute_poll_target(db_session, target)
+
+        assert ok is False
+        await db_session.refresh(node)
+        assert node.status == NodeStatus.DOWN
+
+        # Failure status gauge published
+        assert (str(node.id),) in NODE_STATUS._metrics
+
+        remove_node_metrics(str(node.id))
+
+
+@pytest.mark.asyncio
 async def test_scheduler_bounded_concurrency_and_retry(db_session: AsyncSession):
     scheduler = CollectorScheduler(max_concurrency=2, max_retries=1)
 

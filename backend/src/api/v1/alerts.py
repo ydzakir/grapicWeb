@@ -1,10 +1,10 @@
 import uuid
-from typing import List, Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select, desc
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.deps import get_current_user, require_role
+from api.deps import get_current_user, require_granular_permission, require_role
 from core.database import get_db
 from models.alert import Alert, AlertRule, AlertStatus
 from models.user import User, UserRole
@@ -14,22 +14,22 @@ from schemas.alert import (
     AlertRuleCreate,
     AlertRuleResponse,
     CreateTicketRequest,
-    TicketSyncResponse,
     TicketingWebhookCallback,
 )
 from services.alert_service import acknowledge_alert
 from services.ticketing_service import (
     create_ticket_for_alert,
-    sync_alert_ticket_status,
     handle_ticket_webhook_callback,
+    sync_alert_ticket_status,
 )
 
 require_admin_role = require_role([UserRole.ADMIN])
+require_alert_ack = require_granular_permission("alerts:ack")
 
 router = APIRouter(prefix="/alerts", tags=["Alerts"])
 
 
-@router.get("/active", response_model=List[AlertResponse])
+@router.get("/active", response_model=list[AlertResponse])
 async def get_active_alerts(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -40,7 +40,7 @@ async def get_active_alerts(
     return res.scalars().all()
 
 
-@router.get("/history", response_model=List[AlertResponse])
+@router.get("/history", response_model=list[AlertResponse])
 async def get_alert_history(
     limit: int = 50,
     db: AsyncSession = Depends(get_db),
@@ -57,7 +57,7 @@ async def acknowledge_alert_endpoint(
     alert_id: uuid.UUID,
     body: AlertAcknowledgeRequest,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_alert_ack),
 ):
     """Acknowledge an active firing alert with audit trail."""
     try:
@@ -129,7 +129,7 @@ async def ticket_webhook_callback_endpoint(
     return {"status": "success", "alert_id": str(updated_alert.id), "ticket_status": updated_alert.ticket_status}
 
 
-@router.get("/rules", response_model=List[AlertRuleResponse])
+@router.get("/rules", response_model=list[AlertRuleResponse])
 async def get_alert_rules(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),

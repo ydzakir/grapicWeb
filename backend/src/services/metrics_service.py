@@ -1,6 +1,5 @@
 import time
 import uuid
-from typing import Any
 
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,8 +10,8 @@ from schemas.metrics import MetricDataPoint, MetricSeriesResponse
 
 ALLOWED_METRICS = {
     "cpu_usage": 'infra_cpu_usage_ratio{{node_id="{node_id}"}} * 100',
-    "ram_usage": 'infra_ram_usage_bytes{{node_id="{node_id}"}}',
-    "disk_usage": 'infra_disk_usage_bytes{{node_id="{node_id}"}}',
+    "ram_usage": 'infra_ram_usage_percent{{node_id="{node_id}"}}',
+    "disk_usage": 'infra_disk_usage_percent{{node_id="{node_id}"}}',
     "network_in": 'rate(infra_network_bytes_received_total{{node_id="{node_id}"}}[5m])',
     "network_out": 'rate(infra_network_bytes_transmitted_total{{node_id="{node_id}"}}[5m])',
 }

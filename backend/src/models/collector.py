@@ -26,6 +26,7 @@ class TargetType(enum.StrEnum):
     SSH = "ssh"
     WINRM = "winrm"
     DOCKER_TLS = "docker_tls"
+    FAKE = "fake"
 
 
 class CollectorRunStatus(enum.StrEnum):

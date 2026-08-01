@@ -1,7 +1,8 @@
 import base64
 import logging
 import os
-from typing import Any, Dict, Optional
+from typing import Any
+
 import httpx
 
 logger = logging.getLogger("vault_client")
@@ -15,10 +16,10 @@ class HashiCorpVaultClient:
 
     def __init__(
         self,
-        vault_url: Optional[str] = None,
-        token: Optional[str] = None,
+        vault_url: str | None = None,
+        token: str | None = None,
         key_name: str = "infra-monitoring-key",
-        namespace: Optional[str] = None,
+        namespace: str | None = None,
         timeout: float = 5.0,
     ):
         self.vault_url = (vault_url or os.getenv("VAULT_ADDR", "http://127.0.0.1:8200")).rstrip("/")
@@ -27,7 +28,7 @@ class HashiCorpVaultClient:
         self.namespace = namespace or os.getenv("VAULT_NAMESPACE")
         self.timeout = timeout
 
-    def _get_headers(self) -> Dict[str, str]:
+    def _get_headers(self) -> dict[str, str]:
         headers = {
             "X-Vault-Token": self.token,
             "Content-Type": "application/json",
@@ -36,7 +37,7 @@ class HashiCorpVaultClient:
             headers["X-Vault-Namespace"] = self.namespace
         return headers
 
-    async def check_health(self) -> Dict[str, Any]:
+    async def check_health(self) -> dict[str, Any]:
         """Checks HashiCorp Vault server health and seal status."""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
@@ -61,7 +62,7 @@ class HashiCorpVaultClient:
             "vault_url": self.vault_url,
         }
 
-    async def encrypt(self, plaintext: str, key_name: Optional[str] = None) -> Optional[str]:
+    async def encrypt(self, plaintext: str, key_name: str | None = None) -> str | None:
         """Encrypts plaintext string using Vault Transit engine."""
         target_key = key_name or self.key_name
         encoded_payload = base64.b64encode(plaintext.encode("utf-8")).decode("utf-8")
@@ -81,7 +82,7 @@ class HashiCorpVaultClient:
 
         return None
 
-    async def decrypt(self, ciphertext: str, key_name: Optional[str] = None) -> Optional[str]:
+    async def decrypt(self, ciphertext: str, key_name: str | None = None) -> str | None:
         """Decrypts Vault Transit ciphertext string back to plaintext."""
         target_key = key_name or self.key_name
         url = f"{self.vault_url}/v1/transit/decrypt/{target_key}"
@@ -101,7 +102,7 @@ class HashiCorpVaultClient:
 
         return None
 
-    async def rotate_key(self, key_name: Optional[str] = None) -> Dict[str, Any]:
+    async def rotate_key(self, key_name: str | None = None) -> dict[str, Any]:
         """Rotates the underlying key version for Vault Transit engine."""
         target_key = key_name or self.key_name
         url = f"{self.vault_url}/v1/transit/keys/{target_key}/rotate"
@@ -118,7 +119,7 @@ class HashiCorpVaultClient:
 
         return {"status": "error", "key_name": target_key, "message": "Rotation call failed"}
 
-    async def rewrap(self, ciphertext: str, key_name: Optional[str] = None) -> Optional[str]:
+    async def rewrap(self, ciphertext: str, key_name: str | None = None) -> str | None:
         """Rewraps ciphertext using the latest version of Transit encryption key."""
         target_key = key_name or self.key_name
         url = f"{self.vault_url}/v1/transit/rewrap/{target_key}"
@@ -135,7 +136,7 @@ class HashiCorpVaultClient:
 
         return None
 
-    async def get_kv_secret(self, path: str) -> Optional[Dict[str, Any]]:
+    async def get_kv_secret(self, path: str) -> dict[str, Any] | None:
         """Fetches secret data payload from Vault KV Engine v2 (/v1/secret/data/{path})."""
         clean_path = path.lstrip("/")
         url = f"{self.vault_url}/v1/secret/data/{clean_path}"

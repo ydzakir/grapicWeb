@@ -1,18 +1,17 @@
-import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
-from sqlalchemy import select, desc
+from datetime import UTC, datetime
+from typing import Any
+
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.topology_history import TopologySnapshot, TopologyChangeLog
-from schemas.node import TopologyGraphResponse
+from models.topology_history import TopologySnapshot
 
 
 def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
-async def save_topology_snapshot(db: AsyncSession, graph_data: Dict[str, Any]) -> TopologySnapshot:
+async def save_topology_snapshot(db: AsyncSession, graph_data: dict[str, Any]) -> TopologySnapshot:
     """
     Saves a snapshot of current topology graph for versioning & time-travel comparison.
     """
@@ -31,14 +30,14 @@ async def save_topology_snapshot(db: AsyncSession, graph_data: Dict[str, Any]) -
     return snapshot
 
 
-async def get_topology_snapshots(db: AsyncSession, limit: int = 50) -> List[TopologySnapshot]:
+async def get_topology_snapshots(db: AsyncSession, limit: int = 50) -> list[TopologySnapshot]:
     """Retrieve historical topology snapshots."""
     stmt = select(TopologySnapshot).order_by(desc(TopologySnapshot.timestamp)).limit(limit)
     res = await db.execute(stmt)
     return list(res.scalars().all())
 
 
-def compare_topology_graphs(old_graph: Dict[str, Any], new_graph: Dict[str, Any]) -> Dict[str, Any]:
+def compare_topology_graphs(old_graph: dict[str, Any], new_graph: dict[str, Any]) -> dict[str, Any]:
     """
     Compares two topology graph JSON structures (old vs new) and returns diff of added/removed/modified nodes & edges.
     """

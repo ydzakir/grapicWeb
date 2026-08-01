@@ -1,33 +1,29 @@
 import os
-import uuid
-from datetime import datetime, timezone
-from typing import Tuple
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import UTC, datetime
 
-from models.node import Node
-from models.alert import Alert
-from models.collector import CollectorTarget
+# openpyxl imports
+import openpyxl
 
 # ReportLab imports
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-# openpyxl imports
-import openpyxl
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from models.alert import Alert
+from models.node import Node
 
 REPORTS_DIR = os.path.join(os.getcwd(), "reports_storage")
 os.makedirs(REPORTS_DIR, exist_ok=True)
 
 
 def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
-async def generate_pdf_report(db: AsyncSession, report_type: str = "weekly") -> Tuple[str, str]:
+async def generate_pdf_report(db: AsyncSession, report_type: str = "weekly") -> tuple[str, str]:
     """
     Generates Executive PDF Report with Uptime Summary, Asset Inventory, and Incident History.
     Returns (filename, filepath).
@@ -148,7 +144,7 @@ async def generate_pdf_report(db: AsyncSession, report_type: str = "weekly") -> 
     return filename, filepath
 
 
-async def generate_excel_report(db: AsyncSession, report_type: str = "weekly") -> Tuple[str, str]:
+async def generate_excel_report(db: AsyncSession, report_type: str = "weekly") -> tuple[str, str]:
     """
     Generates Excel Worksheets (.xlsx) Report with Inventory, Alerts, and SLA statistics.
     Returns (filename, filepath).

@@ -1,7 +1,7 @@
 import uuid
-from typing import List, Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select, desc
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import get_current_user, require_role
@@ -28,7 +28,7 @@ require_admin_role = require_role([UserRole.ADMIN])
 router = APIRouter(prefix="/governance", tags=["Governance & Quarterly Audit Review"])
 
 
-@router.get("/reviews", response_model=List[AuditReviewResponse])
+@router.get("/reviews", response_model=list[AuditReviewResponse])
 async def list_audit_reviews(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),

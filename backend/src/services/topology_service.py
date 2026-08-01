@@ -4,7 +4,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.node import LifecycleStatus, Node, NodeConnection, ReviewStatus
+from models.node import LifecycleStatus, Node, ReviewStatus
 from schemas.node import TopologyEdgeResponse, TopologyGraphResponse, TopologyNodeResponse
 
 # Keys to sanitize from presentation metadata

@@ -12,23 +12,19 @@ export class ApiError extends Error {
 }
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const token = localStorage.getItem('token');
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
   };
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     ...options,
     headers,
+    credentials: 'include',
   });
 
   if (response.status === 401) {
-    localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
     localStorage.removeItem('user');
     if (window.location.pathname !== '/login') {
       window.location.href = '/login';
@@ -56,7 +52,19 @@ export const apiClient = {
   put: <T>(endpoint: string, body?: any) =>
     request<T>(endpoint, { method: 'PUT', body: JSON.stringify(body) }),
   delete: <T>(endpoint: string) => request<T>(endpoint, { method: 'DELETE' }),
-  
+  download: async (endpoint: string): Promise<Blob> => {
+    const response = await fetch(`${BASE_URL}${endpoint}`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      const errorMsg = errData?.error?.message || errData?.detail || `HTTP Error ${response.status}`;
+      throw new ApiError(errorMsg, response.status, errData);
+    }
+    return response.blob();
+  },
+
   // Cloudflare Status API
   fetchCloudflareStatus: () => request<{ status: string; data: any }>('/cloudflare/status'),
   syncCloudflareStatus: () => request<{ status: string; message: string; data: any }>('/cloudflare/sync', { method: 'POST' }),

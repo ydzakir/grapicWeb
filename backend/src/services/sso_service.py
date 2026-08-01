@@ -1,7 +1,7 @@
 import logging
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,7 +13,7 @@ from models.user import User, UserRole
 logger = logging.getLogger("sso_service")
 
 
-def map_external_groups_to_user_role(groups: List[str]) -> UserRole:
+def map_external_groups_to_user_role(groups: list[str]) -> UserRole:
     """
     Maps external LDAP or OIDC groups to internal UserRole enum.
     """
@@ -39,7 +39,7 @@ def map_external_groups_to_user_role(groups: List[str]) -> UserRole:
 
 async def auto_provision_sso_user(
     db: AsyncSession,
-    sso_user_info: Dict[str, Any],
+    sso_user_info: dict[str, Any],
 ) -> User:
     """
     Auto-provisions or updates user profile and role mapping from SSO/LDAP claims.
@@ -60,14 +60,14 @@ async def auto_provision_sso_user(
     res = await db.execute(stmt)
     user = res.scalars().first()
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     if user:
         # Update role if mapped role is Admin/Operator
         if mapped_role in (UserRole.ADMIN, UserRole.OPERATOR) and user.role != UserRole.ADMIN:
             user.role = mapped_role
         user.is_active = True
-        
+
         audit = AuditLog(
             actor_username=user.username,
             action="SSO_USER_LOGIN_SYNC",

@@ -41,20 +41,6 @@ export const CloudflareEdgeCard: React.FC = () => {
     fetchStatus();
   }, []);
 
-  const getBadgeClass = (indicator?: string) => {
-    switch (indicator) {
-      case 'none':
-        return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
-      case 'minor':
-        return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
-      case 'major':
-      case 'critical':
-        return 'bg-rose-500/20 text-rose-400 border-rose-500/30';
-      default:
-        return 'bg-slate-500/20 text-slate-400 border-slate-500/30';
-    }
-  };
-
   const getStatusText = (indicator?: string) => {
     switch (indicator) {
       case 'none':

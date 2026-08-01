@@ -1,22 +1,22 @@
 import abc
 import logging
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.alert import Alert, AlertStatus, NotificationProvider
-from models.node import Node
 from models.audit import AuditLog
+from models.node import Node
 
 logger = logging.getLogger("ticketing_service")
 
 
 def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class BaseTicketingAdapter(abc.ABC):
@@ -27,9 +27,9 @@ class BaseTicketingAdapter(abc.ABC):
         self,
         alert: Alert,
         node_name: str,
-        params: Dict[str, Any],
-        config: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        params: dict[str, Any],
+        config: dict[str, Any],
+    ) -> dict[str, Any]:
         """
         Creates a ticket in the external ITSM system.
         Returns dict containing: ticket_id, ticket_url, ticket_status, ticket_system.
@@ -37,7 +37,7 @@ class BaseTicketingAdapter(abc.ABC):
         pass
 
     @abc.abstractmethod
-    async def get_ticket_status(self, ticket_id: str, config: Dict[str, Any]) -> str:
+    async def get_ticket_status(self, ticket_id: str, config: dict[str, Any]) -> str:
         """Fetches current status of a ticket from external ITSM."""
         pass
 
@@ -49,9 +49,9 @@ class JiraTicketingAdapter(BaseTicketingAdapter):
         self,
         alert: Alert,
         node_name: str,
-        params: Dict[str, Any],
-        config: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        params: dict[str, Any],
+        config: dict[str, Any],
+    ) -> dict[str, Any]:
         jira_url = config.get("jira_url", "").rstrip("/")
         username = config.get("username", "")
         api_token = config.get("api_token", "")
@@ -107,7 +107,7 @@ class JiraTicketingAdapter(BaseTicketingAdapter):
             "ticket_system": "jira",
         }
 
-    async def get_ticket_status(self, ticket_id: str, config: Dict[str, Any]) -> str:
+    async def get_ticket_status(self, ticket_id: str, config: dict[str, Any]) -> str:
         jira_url = config.get("jira_url", "").rstrip("/")
         username = config.get("username", "")
         api_token = config.get("api_token", "")
@@ -132,9 +132,9 @@ class ServiceNowTicketingAdapter(BaseTicketingAdapter):
         self,
         alert: Alert,
         node_name: str,
-        params: Dict[str, Any],
-        config: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        params: dict[str, Any],
+        config: dict[str, Any],
+    ) -> dict[str, Any]:
         snow_url = config.get("servicenow_url", "").rstrip("/")
         username = config.get("username", "")
         password = config.get("password", "")
@@ -182,7 +182,7 @@ class ServiceNowTicketingAdapter(BaseTicketingAdapter):
             "ticket_system": "servicenow",
         }
 
-    async def get_ticket_status(self, ticket_id: str, config: Dict[str, Any]) -> str:
+    async def get_ticket_status(self, ticket_id: str, config: dict[str, Any]) -> str:
         return "OPEN"
 
 
@@ -193,9 +193,9 @@ class GenericITSMWebhookAdapter(BaseTicketingAdapter):
         self,
         alert: Alert,
         node_name: str,
-        params: Dict[str, Any],
-        config: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        params: dict[str, Any],
+        config: dict[str, Any],
+    ) -> dict[str, Any]:
         webhook_url = config.get("webhook_url", "")
         summary = params.get("summary") or f"[{alert.severity.upper()}] Alert on {node_name}"
         description = params.get("description") or alert.message
@@ -233,7 +233,7 @@ class GenericITSMWebhookAdapter(BaseTicketingAdapter):
             "ticket_system": "itsm_webhook",
         }
 
-    async def get_ticket_status(self, ticket_id: str, config: Dict[str, Any]) -> str:
+    async def get_ticket_status(self, ticket_id: str, config: dict[str, Any]) -> str:
         return "OPEN"
 
 
@@ -247,7 +247,7 @@ def get_ticketing_adapter(system_type: str) -> BaseTicketingAdapter:
         return GenericITSMWebhookAdapter()
 
 
-async def get_ticketing_provider_config(db: AsyncSession, system_type: str) -> Dict[str, Any]:
+async def get_ticketing_provider_config(db: AsyncSession, system_type: str) -> dict[str, Any]:
     stmt = select(NotificationProvider).where(NotificationProvider.provider_type == system_type)
     res = await db.execute(stmt)
     provider = res.scalars().first()
@@ -258,7 +258,7 @@ async def create_ticket_for_alert(
     db: AsyncSession,
     alert_id: uuid.UUID,
     system_type: str,
-    custom_params: Dict[str, Any],
+    custom_params: dict[str, Any],
     username: str,
 ) -> Alert:
     """Creates an ITSM ticket for an existing alert and links the reference metadata."""
@@ -331,11 +331,11 @@ async def sync_alert_ticket_status(db: AsyncSession, alert_id: uuid.UUID) -> Ale
 
 async def handle_ticket_webhook_callback(
     db: AsyncSession,
-    alert_id: Optional[uuid.UUID],
+    alert_id: uuid.UUID | None,
     ticket_id: str,
     ticket_status: str,
-    notes: Optional[str] = None,
-) -> Optional[Alert]:
+    notes: str | None = None,
+) -> Alert | None:
     """Handles incoming ITSM webhook callbacks to sync ticket status to Alert model."""
     alert = None
     if alert_id:

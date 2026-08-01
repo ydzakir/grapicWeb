@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from models.user import UserRole
@@ -11,18 +12,18 @@ class UserCreateRequest(BaseModel):
     email: str = Field(..., min_length=5, max_length=255)
     password: str = Field(..., min_length=6)
     role: UserRole = UserRole.VIEWER
-    custom_permissions: Optional[List[str]] = Field(default_factory=list) # e.g. ["nodes:write", "topology:edit"]
-    allowed_group_scopes: Optional[List[str]] = Field(default_factory=lambda: ["*"]) # e.g. ["Jakarta-DC", "*"]
+    custom_permissions: list[str] | None = Field(default_factory=list) # e.g. ["nodes:write", "topology:edit"]
+    allowed_group_scopes: list[str] | None = Field(default_factory=lambda: ["*"]) # e.g. ["Jakarta-DC", "*"]
     is_active: bool = True
 
 
 class UserUpdateRequest(BaseModel):
-    email: Optional[str] = None
-    password: Optional[str] = None
-    role: Optional[UserRole] = None
-    custom_permissions: Optional[List[str]] = None
-    allowed_group_scopes: Optional[List[str]] = None
-    is_active: Optional[bool] = None
+    email: str | None = None
+    password: str | None = None
+    role: UserRole | None = None
+    custom_permissions: list[str] | None = None
+    allowed_group_scopes: list[str] | None = None
+    is_active: bool | None = None
 
 
 class UserDetailResponse(BaseModel):
@@ -33,8 +34,8 @@ class UserDetailResponse(BaseModel):
     email: str
     role: UserRole
     is_active: bool
-    custom_permissions: Dict[str, Any]
-    allowed_group_scopes: Dict[str, Any]
+    custom_permissions: dict[str, Any]
+    allowed_group_scopes: dict[str, Any]
     created_at: datetime
 
 
@@ -45,5 +46,5 @@ class PermissionDefinition(BaseModel):
 
 
 class PermissionsMatrixResponse(BaseModel):
-    available_permissions: List[PermissionDefinition]
-    default_role_mappings: Dict[str, List[str]]
+    available_permissions: list[PermissionDefinition]
+    default_role_mappings: dict[str, list[str]]

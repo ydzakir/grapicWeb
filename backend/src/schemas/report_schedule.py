@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import List, Optional
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -9,17 +9,17 @@ class ReportScheduleCreate(BaseModel):
     frequency: str = Field("weekly", pattern="^(weekly|monthly|daily)$")
     report_type: str = Field("weekly", pattern="^(weekly|monthly)$")
     export_format: str = Field("pdf", pattern="^(pdf|excel|both)$")
-    recipients: List[str] = Field(..., min_items=1)
+    recipients: list[str] = Field(..., min_items=1)
     is_enabled: bool = True
 
 
 class ReportScheduleUpdate(BaseModel):
-    name: Optional[str] = None
-    frequency: Optional[str] = Field(None, pattern="^(weekly|monthly|daily)$")
-    report_type: Optional[str] = Field(None, pattern="^(weekly|monthly)$")
-    export_format: Optional[str] = Field(None, pattern="^(pdf|excel|both)$")
-    recipients: Optional[List[str]] = None
-    is_enabled: Optional[bool] = None
+    name: str | None = None
+    frequency: str | None = Field(None, pattern="^(weekly|monthly|daily)$")
+    report_type: str | None = Field(None, pattern="^(weekly|monthly)$")
+    export_format: str | None = Field(None, pattern="^(pdf|excel|both)$")
+    recipients: list[str] | None = None
+    is_enabled: bool | None = None
 
 
 class ReportScheduleResponse(BaseModel):
@@ -30,8 +30,8 @@ class ReportScheduleResponse(BaseModel):
     frequency: str
     report_type: str
     export_format: str
-    recipients: List[str]
+    recipients: list[str]
     is_enabled: bool
-    last_run_at: Optional[datetime] = None
-    next_run_at: Optional[datetime] = None
+    last_run_at: datetime | None = None
+    next_run_at: datetime | None = None
     created_at: datetime

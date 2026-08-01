@@ -1,19 +1,19 @@
 import uuid
-from typing import Optional, List
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.deps import get_current_user, require_role, get_db
-from models.user import User, UserRole
+from api.deps import get_current_user, get_db, require_role
 from models.topology_history import TopologySnapshot
+from models.user import User, UserRole
 from schemas.node import TopologyGraphResponse
 from services import topology_service
 from services.network_discovery_service import create_manual_network_edge
 from services.topology_history_service import (
-    save_topology_snapshot,
-    get_topology_snapshots,
     compare_topology_graphs,
+    get_topology_snapshots,
+    save_topology_snapshot,
 )
 
 require_admin_role = require_role([UserRole.ADMIN])
@@ -110,7 +110,7 @@ async def list_topology_snapshots(
 @router.get("/compare")
 async def compare_topology_snapshots_endpoint(
     snapshot_a_id: uuid.UUID,
-    snapshot_b_id: Optional[uuid.UUID] = Query(None, description="Snapshot B ID (or current if omitted)"),
+    snapshot_b_id: uuid.UUID | None = Query(None, description="Snapshot B ID (or current if omitted)"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):

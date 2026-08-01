@@ -1,7 +1,8 @@
 import logging
 import os
 import uuid
-from typing import Any, Dict, Optional
+from typing import Any
+
 import httpx
 
 logger = logging.getLogger("oidc_driver")
@@ -15,13 +16,13 @@ class OidcAuthDriver:
 
     def __init__(
         self,
-        client_id: Optional[str] = None,
-        client_secret: Optional[str] = None,
-        discovery_url: Optional[str] = None,
-        authorize_url: Optional[str] = None,
-        token_url: Optional[str] = None,
-        userinfo_url: Optional[str] = None,
-        redirect_uri: Optional[str] = None,
+        client_id: str | None = None,
+        client_secret: str | None = None,
+        discovery_url: str | None = None,
+        authorize_url: str | None = None,
+        token_url: str | None = None,
+        userinfo_url: str | None = None,
+        redirect_uri: str | None = None,
     ):
         self.client_id = client_id or os.getenv("OIDC_CLIENT_ID", "infra-topology-client")
         self.client_secret = client_secret or os.getenv("OIDC_CLIENT_SECRET", "oidc_secret_key_123")
@@ -32,7 +33,7 @@ class OidcAuthDriver:
         self.redirect_uri = redirect_uri or os.getenv("OIDC_REDIRECT_URI", "http://localhost:5173/login?sso_callback=1")
         self.is_enabled = os.getenv("OIDC_ENABLED", "true").lower() in ("true", "1", "yes")
 
-    def get_authorization_url(self, state: Optional[str] = None) -> Dict[str, str]:
+    def get_authorization_url(self, state: str | None = None) -> dict[str, str]:
         """Generates OIDC authorization URL with state CSRF nonce."""
         state_nonce = state or str(uuid.uuid4())
         params = {
@@ -50,7 +51,7 @@ class OidcAuthDriver:
             "provider": "oidc",
         }
 
-    async def handle_callback(self, code: str, redirect_uri: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    async def handle_callback(self, code: str, redirect_uri: str | None = None) -> dict[str, Any] | None:
         """
         Exchanges Authorization Code for Tokens and fetches UserInfo claims from OIDC Provider.
         Returns User Info dictionary if valid code, None otherwise.
