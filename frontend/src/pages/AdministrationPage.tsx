@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../services/apiClient';
-import { CollectorTarget, DataCenter, PaginatedNodes } from '../types/api';
+import { CollectorTarget, DataCenter, PaginatedNodes, QuarterlyAuditReviewItem, ReportScheduleItem } from '../types/api';
 import {
   Server,
   Plus,
@@ -13,11 +13,19 @@ import {
   Check,
   FileText,
   Download,
+  ShieldCheck,
+  UserCheck,
+  UserX,
+  Award,
+  Calendar,
+  Mail,
+  Play,
+  Trash2,
 } from 'lucide-react';
 
 export const AdministrationPage: React.FC = () => {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'collectors' | 'datacenters' | 'pending' | 'reports'>('collectors');
+  const [activeTab, setActiveTab] = useState<'collectors' | 'datacenters' | 'pending' | 'reports' | 'governance'>('collectors');
   const [reportType, setReportType] = useState<'weekly' | 'monthly'>('weekly');
   const [reportFormat, setReportFormat] = useState<'pdf' | 'excel'>('pdf');
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
@@ -37,6 +45,23 @@ export const AdministrationPage: React.FC = () => {
   const [dcLocation, setDcLocation] = useState('');
   const [assignDcId, setAssignDcId] = useState<string | null>(null);
   const [selectedHostIds, setSelectedHostIds] = useState<string[]>([]);
+
+  // Governance State
+  const [isCreateCampaignOpen, setIsCreateCampaignOpen] = useState(false);
+  const [govQuarter, setGovQuarter] = useState('2026-Q3');
+  const [govTitle, setGovTitle] = useState('2026 Q3 RBAC Access & Governance Review');
+  const [govReviewer, setGovReviewer] = useState('admin');
+  const [signoffCampaignId, setSignoffCampaignId] = useState<string | null>(null);
+  const [signoffComment, setSignoffComment] = useState('');
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
+
+  // Report Schedule State
+  const [isCreateScheduleOpen, setIsCreateScheduleOpen] = useState(false);
+  const [schedName, setSchedName] = useState('Weekly Executive Uptime Report');
+  const [schedFreq, setSchedFreq] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
+  const [schedReportType, setSchedReportType] = useState<'weekly' | 'monthly'>('weekly');
+  const [schedFormat, setSchedFormat] = useState<'pdf' | 'excel' | 'both'>('pdf');
+  const [schedRecipients, setSchedRecipients] = useState('exec@company.com, ops@company.com');
 
   // Fetch Collector Targets
   const { data: targets, isLoading: isLoadingTargets } = useQuery<CollectorTarget[]>({
@@ -62,6 +87,27 @@ export const AdministrationPage: React.FC = () => {
     queryKey: ['nodes', 'pending-queue'],
     queryFn: () => apiClient.get<PaginatedNodes>('/nodes?review_status=pending&page_size=100'),
     enabled: activeTab === 'pending',
+  });
+
+  // Fetch Governance Audit Reviews
+  const { data: auditReviews, isLoading: isLoadingGov } = useQuery<QuarterlyAuditReviewItem[]>({
+    queryKey: ['governance-reviews'],
+    queryFn: () => apiClient.get<QuarterlyAuditReviewItem[]>('/governance/reviews'),
+    enabled: activeTab === 'governance',
+  });
+
+  // Fetch Single Governance Audit Campaign Details
+  const { data: selectedCampaign } = useQuery<QuarterlyAuditReviewItem>({
+    queryKey: ['governance-review', selectedCampaignId],
+    queryFn: () => apiClient.get<QuarterlyAuditReviewItem>(`/governance/reviews/${selectedCampaignId}`),
+    enabled: !!selectedCampaignId,
+  });
+
+  // Fetch Report Schedules
+  const { data: reportSchedules, isLoading: isLoadingSchedules } = useQuery<ReportScheduleItem[]>({
+    queryKey: ['report-schedules'],
+    queryFn: () => apiClient.get<ReportScheduleItem[]>('/reports/schedules'),
+    enabled: activeTab === 'reports',
   });
 
   // Create Collector Target Mutation
@@ -100,8 +146,7 @@ export const AdministrationPage: React.FC = () => {
     mutationFn: ({ dcId, hostIds }: { dcId: string; hostIds: string[] }) =>
       apiClient.post(`/datacenters/${dcId}/assign-hosts`, { host_ids: hostIds }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['nodes'] });
-      queryClient.invalidateQueries({ queryKey: ['topology'] });
+      queryClient.invalidateQueries({ queryKey: ['datacenters'] });
       setAssignDcId(null);
       setSelectedHostIds([]);
     },
@@ -109,9 +154,73 @@ export const AdministrationPage: React.FC = () => {
 
   // Approve Node Mutation
   const approveNodeMutation = useMutation({
-    mutationFn: (id: string) => apiClient.post(`/nodes/${id}/approve`),
+    mutationFn: (nodeId: string) => apiClient.post(`/nodes/${nodeId}/approve`, {}),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['nodes'] });
+      queryClient.invalidateQueries({ queryKey: ['nodes', 'pending-queue'] });
+    },
+  });
+
+  // Reject Node Mutation
+  const rejectNodeMutation = useMutation({
+    mutationFn: (nodeId: string) => apiClient.post(`/nodes/${nodeId}/reject`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nodes', 'pending-queue'] });
+    },
+  });
+
+  // Create Governance Campaign Mutation
+  const createGovCampaignMutation = useMutation({
+    mutationFn: (body: any) => apiClient.post<QuarterlyAuditReviewItem>('/governance/reviews', body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['governance-reviews'] });
+      setIsCreateCampaignOpen(false);
+    },
+  });
+
+  // Review Decision Mutation
+  const reviewDecisionMutation = useMutation({
+    mutationFn: ({ reviewId, userId, decision }: { reviewId: string; userId: string; decision: string }) =>
+      apiClient.post(`/governance/reviews/${reviewId}/decisions`, { user_id: userId, decision }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['governance-review', selectedCampaignId] });
+      queryClient.invalidateQueries({ queryKey: ['governance-reviews'] });
+    },
+  });
+
+  // Executive Sign-off Mutation
+  const signoffMutation = useMutation({
+    mutationFn: ({ reviewId, comments }: { reviewId: string; comments: string }) =>
+      apiClient.post(`/governance/reviews/${reviewId}/sign-off`, { comments }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['governance-reviews'] });
+      queryClient.invalidateQueries({ queryKey: ['governance-review', selectedCampaignId] });
+      setSignoffCampaignId(null);
+      setSignoffComment('');
+    },
+  });
+
+  // Create Report Schedule Mutation
+  const createScheduleMutation = useMutation({
+    mutationFn: (body: any) => apiClient.post<ReportScheduleItem>('/reports/schedules', body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report-schedules'] });
+      setIsCreateScheduleOpen(false);
+    },
+  });
+
+  // Trigger Report Schedule Mutation
+  const triggerScheduleMutation = useMutation({
+    mutationFn: (scheduleId: string) => apiClient.post<ReportScheduleItem>(`/reports/schedules/${scheduleId}/trigger`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report-schedules'] });
+    },
+  });
+
+  // Delete Report Schedule Mutation
+  const deleteScheduleMutation = useMutation({
+    mutationFn: (scheduleId: string) => apiClient.delete(`/reports/schedules/${scheduleId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report-schedules'] });
     },
   });
 
@@ -123,45 +232,74 @@ export const AdministrationPage: React.FC = () => {
     setCredRef('');
   };
 
-  const handleCreateTarget = (e: React.FormEvent) => {
+  const handleCreateTargetSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     createTargetMutation.mutate({
       name: targetName,
       target_type: targetType,
       host_or_url: hostUrl,
       port: port ? Number(port) : null,
-      credential_reference: credRef,
+      credential_reference: credRef || 'default_key',
       poll_interval_seconds: 60,
     });
   };
 
-  const handleCreateDC = (e: React.FormEvent) => {
+  const handleCreateDcSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createDcMutation.mutate({ name: dcName, location: dcLocation });
+    createDcMutation.mutate({
+      name: dcName,
+      location: dcLocation || undefined,
+    });
   };
 
   const handleAssignHostsSubmit = () => {
-    if (!assignDcId) return;
+    if (!assignDcId || selectedHostIds.length === 0) return;
     assignHostsMutation.mutate({ dcId: assignDcId, hostIds: selectedHostIds });
   };
 
-  const handleGenerateReport = async () => {
+  const handleCreateGovCampaignSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    createGovCampaignMutation.mutate({
+      quarter: govQuarter,
+      title: govTitle,
+      reviewer_username: govReviewer,
+      duration_days: 14,
+    });
+  };
+
+  const handleCreateScheduleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const emailsList = schedRecipients
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    createScheduleMutation.mutate({
+      name: schedName,
+      frequency: schedFreq,
+      report_type: schedReportType,
+      export_format: schedFormat,
+      recipients: emailsList,
+      is_enabled: true,
+    });
+  };
+
+  const handleDownloadReport = async () => {
     setIsGeneratingReport(true);
     try {
-      const res = await apiClient.post<{ filename: string; download_url: string }>('/reports/generate', {
-        report_type: reportType,
-        format: reportFormat,
+      const endpoint = reportFormat === 'pdf' ? '/reports/download/pdf' : '/reports/download/excel';
+      const response = await apiClient.get<Blob>(`${endpoint}?report_type=${reportType}`, {
+        responseType: 'blob',
       });
-
-      // Trigger automatic file download
+      const url = window.URL.createObjectURL(new Blob([response]));
       const link = document.createElement('a');
-      link.href = res.download_url;
-      link.setAttribute('download', res.filename);
+      link.href = url;
+      link.setAttribute('download', `Infrastructure_Report_${reportType}_${Date.now()}.${reportFormat === 'pdf' ? 'pdf' : 'xlsx'}`);
       document.body.appendChild(link);
       link.click();
       link.remove();
     } catch (err) {
-      alert('Failed to generate report.');
+      console.error('Report download failed:', err);
     } finally {
       setIsGeneratingReport(false);
     }
@@ -171,8 +309,8 @@ export const AdministrationPage: React.FC = () => {
     <div className="page-container">
       <header className="page-header">
         <div>
-          <h1 className="page-title">Administration</h1>
-          <p className="page-subtitle">Manage collector targets, data centers, and approval queue</p>
+          <h1 className="page-title">System Administration &amp; Governance</h1>
+          <p className="page-subtitle">Manage collectors, data centers, node approvals, reports &amp; quarterly RBAC governance reviews</p>
         </div>
       </header>
 
@@ -196,7 +334,7 @@ export const AdministrationPage: React.FC = () => {
           className={`tab-btn ${activeTab === 'pending' ? 'active' : ''}`}
           onClick={() => setActiveTab('pending')}
         >
-          <ShieldAlert className="tab-icon" /> Pending Approvals Queue
+          <ShieldAlert className="tab-icon" /> Pending Approvals ({pendingNodes?.total || 0})
         </button>
 
         <button
@@ -205,13 +343,20 @@ export const AdministrationPage: React.FC = () => {
         >
           <FileText className="tab-icon" /> Executive Reports
         </button>
+
+        <button
+          className={`tab-btn ${activeTab === 'governance' ? 'active' : ''}`}
+          onClick={() => setActiveTab('governance')}
+        >
+          <ShieldCheck className="tab-icon" /> Governance &amp; Audit
+        </button>
       </div>
 
       {/* Tab 1: Collector Targets */}
       {activeTab === 'collectors' && (
         <div className="tab-content">
           <div className="tab-header">
-            <h3>Registered Collector Targets</h3>
+            <h3>Infrastructure Collector Targets</h3>
             <button onClick={() => setIsAddTargetModalOpen(true)} className="btn-primary">
               <Plus className="btn-icon" /> Add Collector Target
             </button>
@@ -220,43 +365,32 @@ export const AdministrationPage: React.FC = () => {
           {isLoadingTargets ? (
             <div className="loading-state">Loading collector targets...</div>
           ) : !targets || targets.length === 0 ? (
-            <div className="empty-state">No collector targets registered yet.</div>
+            <div className="empty-state">No collector targets configured yet.</div>
           ) : (
             <div className="cards-grid">
               {targets.map((target) => (
                 <div key={target.id} className="target-card">
                   <div className="card-header">
                     <h4>{target.name}</h4>
-                    <span className="type-tag">{target.target_type.toUpperCase()}</span>
+                    <span className={`type-badge ${target.target_type}`}>{target.target_type.toUpperCase()}</span>
                   </div>
                   <div className="card-body">
-                    <div className="info-row">
-                      <span className="label">Host / Endpoint:</span>
-                      <span className="val">{target.host_or_url}</span>
-                    </div>
-                    <div className="info-row">
-                      <span className="label">Cred Reference:</span>
-                      <span className="val badge-ref">{target.credential_reference}</span>
-                    </div>
-                    <div className="info-row">
-                      <span className="label">Poll Interval:</span>
-                      <span className="val">{target.poll_interval_seconds}s</span>
-                    </div>
-                    {(testResult?.id === target.id ? testResult.status : target.last_test_status) && (
-                      <div className={`test-status-banner ${testResult?.id === target.id ? testResult.status : target.last_test_status}`}>
-                        {(testResult?.id === target.id ? testResult.status : target.last_test_status) === 'success' ? (
-                          <CheckCircle2 className="status-icon" />
-                        ) : (
-                          <AlertCircle className="status-icon" />
-                        )}
-                        <span>{testResult?.id === target.id ? testResult.message : (target.last_test_message || target.last_test_status)}</span>
+                    <p><strong>Host/URL:</strong> {target.host_or_url}</p>
+                    {target.port && <p><strong>Port:</strong> {target.port}</p>}
+                    <p><strong>Poll Interval:</strong> {target.poll_interval_seconds}s</p>
+                    <p><strong>Status:</strong> {target.is_enabled ? 'Enabled' : 'Disabled'}</p>
+
+                    {testResult && testResult.id === target.id && (
+                      <div className={`test-feedback ${testResult.status}`}>
+                        {testResult.status === 'success' ? <CheckCircle2 className="icon-success" /> : <AlertCircle className="icon-error" />}
+                        <span>{testResult.message}</span>
                       </div>
                     )}
                   </div>
                   <div className="card-footer">
                     <button
                       onClick={() => testConnectionMutation.mutate(target.id)}
-                      className="btn-secondary btn-block"
+                      className="btn-secondary btn-sm"
                       disabled={testConnectionMutation.isPending}
                     >
                       <Zap className="btn-icon" /> Test Connection
@@ -275,24 +409,25 @@ export const AdministrationPage: React.FC = () => {
           <div className="tab-header">
             <h3>Data Center Groups</h3>
             <button onClick={() => setIsAddDcModalOpen(true)} className="btn-primary">
-              <Plus className="btn-icon" /> Create Data Center
+              <Plus className="btn-icon" /> Add Data Center
             </button>
           </div>
 
           {isLoadingDCs ? (
             <div className="loading-state">Loading data centers...</div>
           ) : !dataCenters || dataCenters.length === 0 ? (
-            <div className="empty-state">No Data Centers created.</div>
+            <div className="empty-state">No Data Centers configured.</div>
           ) : (
             <div className="cards-grid">
               {dataCenters.map((dc) => (
-                <div key={dc.id} className="dc-card">
+                <div key={dc.id} className="target-card dc-card">
                   <div className="card-header">
-                    <Building2 className="dc-icon" />
                     <h4>{dc.name}</h4>
+                    <span className="type-badge dc">DATA CENTER</span>
                   </div>
                   <div className="card-body">
-                    <p className="dc-location">Location: {dc.metadata?.location || 'Unspecified'}</p>
+                    <p><strong>Location Code:</strong> {dc.metadata?.location || 'N/A'}</p>
+                    <p><strong>Status:</strong> {dc.status.toUpperCase()}</p>
                   </div>
                   <div className="card-footer">
                     <button
@@ -300,9 +435,9 @@ export const AdministrationPage: React.FC = () => {
                         setAssignDcId(dc.id);
                         setSelectedHostIds([]);
                       }}
-                      className="btn-secondary btn-block"
+                      className="btn-secondary btn-sm"
                     >
-                      Assign Hosts
+                      <Building2 className="btn-icon" /> Assign Host Nodes
                     </button>
                   </div>
                 </div>
@@ -312,53 +447,56 @@ export const AdministrationPage: React.FC = () => {
         </div>
       )}
 
-      {/* Tab 3: Pending Queue */}
+      {/* Tab 3: Pending Approvals Queue */}
       {activeTab === 'pending' && (
         <div className="tab-content">
           <div className="tab-header">
-            <h3>Pending Review Queue</h3>
+            <h3>Discovered Nodes Pending Approval</h3>
           </div>
-          {!pendingNodes?.items || pendingNodes.items.length === 0 ? (
+
+          {!pendingNodes || pendingNodes.items.length === 0 ? (
             <div className="empty-state-success">
               <CheckCircle2 className="success-icon" />
-              <p>No pending nodes awaiting approval.</p>
+              <p>All discovered nodes have been reviewed. No pending nodes in queue.</p>
             </div>
           ) : (
             <div className="table-container">
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Discovered Node Name</th>
+                    <th>Node Name</th>
                     <th>Type</th>
                     <th>IP Address</th>
-                    <th>Discovered OS</th>
-                    <th>Validation Check</th>
-                    <th>Action</th>
+                    <th>OS</th>
+                    <th>Discovered At</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {pendingNodes.items.map((node) => (
                     <tr key={node.id}>
-                      <td>{node.name}</td>
-                      <td><span className="type-tag">{node.type.replace('_', ' ')}</span></td>
-                      <td>{node.ip_address || 'N/A'}</td>
-                      <td>{node.os || 'N/A'}</td>
+                      <td><strong>{node.name}</strong></td>
+                      <td><span className="node-type-tag">{node.type.replace('_', ' ')}</span></td>
+                      <td>{node.ip_address || '-'}</td>
+                      <td>{node.os || '-'}</td>
+                      <td>{new Date(node.created_at).toLocaleString()}</td>
                       <td>
-                        {node.metadata?.validation_issue ? (
-                          <span className="validation-issue-tag">
-                            <AlertCircle className="tag-icon" /> {node.metadata.validation_issue}
-                          </span>
-                        ) : (
-                          <span className="validation-ok-tag">Valid Host Name</span>
-                        )}
-                      </td>
-                      <td>
-                        <button
-                          onClick={() => approveNodeMutation.mutate(node.id)}
-                          className="btn-icon-action btn-approve"
-                        >
-                          <Check className="action-icon" /> Approve
-                        </button>
+                        <div className="action-buttons">
+                          <button
+                            onClick={() => approveNodeMutation.mutate(node.id)}
+                            className="btn-success btn-sm"
+                            disabled={approveNodeMutation.isPending}
+                          >
+                            <Check className="btn-icon" /> Approve
+                          </button>
+                          <button
+                            onClick={() => rejectNodeMutation.mutate(node.id)}
+                            className="btn-danger btn-sm"
+                            disabled={rejectNodeMutation.isPending}
+                          >
+                            Reject
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -373,62 +511,250 @@ export const AdministrationPage: React.FC = () => {
       {activeTab === 'reports' && (
         <div className="tab-content">
           <div className="tab-header">
-            <h3>Generate Executive Reports</h3>
+            <h3>Executive Recapitulation Reports</h3>
           </div>
 
-          <div className="target-card report-generator-card">
-            <div className="card-header">
-              <h4>Periodic Infrastructure Summary Report</h4>
-            </div>
-            <div className="card-body">
-              <p className="card-desc">
-                Generate formatted PDF or Excel executive reports summarizing SLA availability, asset inventory, and recent alert incident history.
-              </p>
+          <div className="report-generator-card">
+            <p className="report-desc">Generate aggregated system uptime, incident log, and asset inventory reports for executive stakeholders.</p>
+            <div className="report-controls">
+              <div className="form-group">
+                <label>Report Period</label>
+                <select value={reportType} onChange={(e) => setReportType(e.target.value as any)}>
+                  <option value="weekly">Weekly Summary Report</option>
+                  <option value="monthly">Monthly Full Executive Audit</option>
+                </select>
+              </div>
 
-              <div className="form-grid">
-                <div className="form-group">
-                  <label>Report Time Period</label>
-                  <select value={reportType} onChange={(e) => setReportType(e.target.value as any)}>
-                    <option value="weekly">Weekly Recap Report (Last 7 Days)</option>
-                    <option value="monthly">Monthly Executive Report (Last 30 Days)</option>
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label>Export File Format</label>
-                  <select value={reportFormat} onChange={(e) => setReportFormat(e.target.value as any)}>
-                    <option value="pdf">PDF Document (.pdf)</option>
-                    <option value="excel">Excel Workbook (.xlsx)</option>
-                  </select>
-                </div>
+              <div className="form-group">
+                <label>Export Format</label>
+                <select value={reportFormat} onChange={(e) => setReportFormat(e.target.value as any)}>
+                  <option value="pdf">PDF Document (.pdf)</option>
+                  <option value="excel">Excel Workbook (.xlsx)</option>
+                </select>
               </div>
             </div>
-            <div className="card-footer">
-              <button
-                onClick={handleGenerateReport}
-                className="btn-primary"
-                disabled={isGeneratingReport}
-              >
-                <Download className="btn-icon" />
-                {isGeneratingReport ? 'Generating Report...' : 'Generate & Download Report'}
-              </button>
-            </div>
+
+            <button onClick={handleDownloadReport} className="btn-primary" disabled={isGeneratingReport}>
+              <Download className="btn-icon" /> {isGeneratingReport ? 'Generating Report...' : `Download ${reportFormat.toUpperCase()} Report`}
+            </button>
           </div>
+
+          {/* Section: Automated Report Delivery Schedules */}
+          <div className="tab-header" style={{ marginTop: '32px' }}>
+            <h3>Automated Report Delivery Schedules (Cron Engine)</h3>
+            <button onClick={() => setIsCreateScheduleOpen(true)} className="btn-primary">
+              <Plus className="btn-icon" /> Create Schedule Rule
+            </button>
+          </div>
+
+          {isLoadingSchedules ? (
+            <div className="loading-state">Loading automated report schedules...</div>
+          ) : !reportSchedules || reportSchedules.length === 0 ? (
+            <div className="empty-state">No automated report schedules configured yet.</div>
+          ) : (
+            <div className="table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Schedule Name</th>
+                    <th>Frequency</th>
+                    <th>Format</th>
+                    <th>Recipients</th>
+                    <th>Last Run</th>
+                    <th>Next Run</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportSchedules.map((sched) => (
+                    <tr key={sched.id}>
+                      <td><strong>{sched.name}</strong></td>
+                      <td><span className="badge badge-info">{sched.frequency.toUpperCase()}</span></td>
+                      <td><code>{sched.export_format.toUpperCase()}</code></td>
+                      <td>
+                        <span style={{ fontSize: '0.85rem' }}>
+                          <Mail size={12} className="btn-icon" /> {sched.recipients.join(', ')}
+                        </span>
+                      </td>
+                      <td>{sched.last_run_at ? new Date(sched.last_run_at).toLocaleString() : 'Never'}</td>
+                      <td>{sched.next_run_at ? new Date(sched.next_run_at).toLocaleString() : 'Pending'}</td>
+                      <td>
+                        <div className="action-buttons">
+                          <button
+                            onClick={() => triggerScheduleMutation.mutate(sched.id)}
+                            className="btn-success btn-sm"
+                            disabled={triggerScheduleMutation.isPending}
+                            title="Run Schedule Now"
+                          >
+                            <Play size={12} /> Trigger Now
+                          </button>
+                          <button
+                            onClick={() => deleteScheduleMutation.mutate(sched.id)}
+                            className="btn-danger btn-sm"
+                            disabled={deleteScheduleMutation.isPending}
+                            title="Delete Schedule"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Modal: Add Collector Target */}
+      {/* Tab 5: Governance & Quarterly Audit */}
+      {activeTab === 'governance' && (
+        <div className="tab-content">
+          <div className="tab-header">
+            <h3>Quarterly RBAC Access Audit Reviews</h3>
+            <button onClick={() => setIsCreateCampaignOpen(true)} className="btn-primary">
+              <Plus className="btn-icon" /> Create Audit Campaign
+            </button>
+          </div>
+
+          {isLoadingGov ? (
+            <div className="loading-state">Loading governance audit reviews...</div>
+          ) : !auditReviews || auditReviews.length === 0 ? (
+            <div className="empty-state">No governance audit reviews found.</div>
+          ) : (
+            <div className="cards-grid">
+              {auditReviews.map((rev) => {
+                const total = Object.keys(rev.user_snapshots || {}).length;
+                const done = Object.keys(rev.review_decisions || {}).length;
+                const pct = total > 0 ? Math.round((done / total) * 100) : 100;
+
+                return (
+                  <div key={rev.id} className="target-card">
+                    <div className="card-header">
+                      <h4>{rev.title}</h4>
+                      <span className={`type-badge ${rev.status === 'APPROVED' ? 'active' : rev.status === 'OVERDUE_ESCALATED' ? 'critical' : 'warning'}`}>
+                        {rev.status}
+                      </span>
+                    </div>
+                    <div className="card-body">
+                      <p><strong>Quarter:</strong> <code>{rev.quarter}</code></p>
+                      <p><strong>Reviewer:</strong> {rev.reviewer_username}</p>
+                      <p><strong>Due Date:</strong> {new Date(rev.due_date).toLocaleDateString()}</p>
+                      <p><strong>Progress:</strong> {done} / {total} accounts reviewed ({pct}%)</p>
+
+                      {rev.signoff_by && (
+                        <div style={{ marginTop: '8px', padding: '6px', background: 'var(--bg-subtle)', borderRadius: '4px', fontSize: '0.8rem' }}>
+                          <Award size={12} className="icon-blue" /> Signed off by <strong>{rev.signoff_by}</strong> on {new Date(rev.signoff_at!).toLocaleDateString()}
+                        </div>
+                      )}
+                    </div>
+                    <div className="card-footer" style={{ gap: '8px' }}>
+                      <button
+                        onClick={() => setSelectedCampaignId(rev.id)}
+                        className="btn-secondary btn-sm"
+                      >
+                        <ShieldCheck size={14} /> View / Review Accounts
+                      </button>
+                      {rev.status !== 'APPROVED' && (
+                        <button
+                          onClick={() => setSignoffCampaignId(rev.id)}
+                          className="btn-success btn-sm"
+                        >
+                          <Check size={14} /> Executive Sign-off
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Detailed User Account Review Drawer/Modal */}
+          {selectedCampaign && (
+            <div className="modal-overlay">
+              <div className="modal-card modal-lg">
+                <h3>{selectedCampaign.title} (Snapshot Review)</h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  Quarter: <code>{selectedCampaign.quarter}</code> | Reviewer: {selectedCampaign.reviewer_username}
+                </p>
+
+                <div className="table-container" style={{ maxHeight: '360px', overflowY: 'auto' }}>
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>User Account</th>
+                        <th>Email</th>
+                        <th>Assigned Role</th>
+                        <th>Decision</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.values(selectedCampaign.user_snapshots || {}).map((u: any) => {
+                        const dec = selectedCampaign.review_decisions?.[u.user_id];
+                        return (
+                          <tr key={u.user_id}>
+                            <td><strong>{u.username}</strong></td>
+                            <td>{u.email}</td>
+                            <td><code className="node-type-tag">{u.role}</code></td>
+                            <td>
+                              {dec ? (
+                                <span className={`badge badge-${dec.decision === 'approve' ? 'up' : dec.decision === 'revoke' ? 'down' : 'warning'}`}>
+                                  {dec.decision.toUpperCase()}
+                                </span>
+                              ) : (
+                                <span className="review-tag pending">PENDING</span>
+                              )}
+                            </td>
+                            <td>
+                              <div className="action-buttons">
+                                <button
+                                  className="btn-success btn-sm"
+                                  onClick={() => reviewDecisionMutation.mutate({ reviewId: selectedCampaign.id, userId: u.user_id, decision: 'approve' })}
+                                  disabled={selectedCampaign.status === 'APPROVED'}
+                                >
+                                  <UserCheck size={12} /> Approve
+                                </button>
+                                <button
+                                  className="btn-danger btn-sm"
+                                  onClick={() => reviewDecisionMutation.mutate({ reviewId: selectedCampaign.id, userId: u.user_id, decision: 'revoke' })}
+                                  disabled={selectedCampaign.status === 'APPROVED'}
+                                >
+                                  <UserX size={12} /> Revoke
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="modal-actions">
+                  <button onClick={() => setSelectedCampaignId(null)} className="btn-secondary">
+                    Close Review Drawer
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modal: Create Collector Target */}
       {isAddTargetModalOpen && (
         <div className="modal-overlay">
           <div className="modal-card">
-            <h3>Register Collector Target</h3>
-            <form onSubmit={handleCreateTarget}>
+            <h3>Add Collector Target</h3>
+            <form onSubmit={handleCreateTargetSubmit}>
               <div className="form-group">
                 <label>Target Name</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Linux Production Server Cluster"
+                  placeholder="e.g. Production Linux Cluster 01"
                   value={targetName}
                   onChange={(e) => setTargetName(e.target.value)}
                 />
@@ -436,20 +762,20 @@ export const AdministrationPage: React.FC = () => {
 
               <div className="form-group">
                 <label>Target Type</label>
-                <select value={targetType} onChange={(e: any) => setTargetType(e.target.value)}>
-                  <option value="ssh">SSH (Linux Host)</option>
-                  <option value="winrm">WinRM / PowerShell (Windows)</option>
-                  <option value="hyperv">Hyper-V Hypervisor</option>
-                  <option value="docker">Docker Engine API (TLS)</option>
+                <select value={targetType} onChange={(e) => setTargetType(e.target.value as any)}>
+                  <option value="ssh">SSH (Linux Server)</option>
+                  <option value="winrm">WinRM (Windows Server)</option>
+                  <option value="hyperv">Hyper-V Host</option>
+                  <option value="docker">Docker Host / Swarm</option>
                 </select>
               </div>
 
               <div className="form-group">
-                <label>Host IP / Address / Endpoint</label>
+                <label>Host / IP Address / URL</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. 192.168.1.100 or tcp://10.0.0.1:2376"
+                  placeholder="10.0.0.15 or https://docker.company.internal"
                   value={hostUrl}
                   onChange={(e) => setHostUrl(e.target.value)}
                 />
@@ -459,22 +785,20 @@ export const AdministrationPage: React.FC = () => {
                 <label>Port (Optional)</label>
                 <input
                   type="number"
-                  placeholder="e.g. 22 or 5986"
+                  placeholder="22 for SSH, 5986 for WinRM"
                   value={port}
                   onChange={(e) => setPort(e.target.value ? Number(e.target.value) : '')}
                 />
               </div>
 
               <div className="form-group">
-                <label>Credential Vault Reference (Secret Ref Key)</label>
+                <label>Credential Key Reference</label>
                 <input
                   type="text"
-                  required
-                  placeholder="e.g. secret:ssh-dc1-key or secret:winrm-admin-pass"
+                  placeholder="e.g. prod_ssh_key_v1"
                   value={credRef}
                   onChange={(e) => setCredRef(e.target.value)}
                 />
-                <small className="form-hint">Stored as encrypted secret reference. Plain text credentials are never displayed.</small>
               </div>
 
               <div className="modal-actions">
@@ -482,7 +806,7 @@ export const AdministrationPage: React.FC = () => {
                   Cancel
                 </button>
                 <button type="submit" className="btn-primary" disabled={createTargetMutation.isPending}>
-                  {createTargetMutation.isPending ? 'Saving...' : 'Register Target'}
+                  {createTargetMutation.isPending ? 'Saving...' : 'Add Target'}
                 </button>
               </div>
             </form>
@@ -494,8 +818,8 @@ export const AdministrationPage: React.FC = () => {
       {isAddDcModalOpen && (
         <div className="modal-overlay">
           <div className="modal-card">
-            <h3>Create Data Center Group</h3>
-            <form onSubmit={handleCreateDC}>
+            <h3>Add New Data Center</h3>
+            <form onSubmit={handleCreateDcSubmit}>
               <div className="form-group">
                 <label>Data Center Name</label>
                 <input
@@ -574,6 +898,151 @@ export const AdministrationPage: React.FC = () => {
                 {assignHostsMutation.isPending ? 'Assigning...' : 'Assign Selected Hosts'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Create Governance Campaign */}
+      {isCreateCampaignOpen && (
+        <div className="modal-overlay">
+          <div className="modal-card">
+            <h3>Create Quarterly RBAC Audit Campaign</h3>
+            <form onSubmit={handleCreateGovCampaignSubmit}>
+              <div className="form-group">
+                <label>Quarter Code</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 2026-Q3"
+                  value={govQuarter}
+                  onChange={(e) => setGovQuarter(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Campaign Title</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 2026 Q3 Access & RBAC Audit"
+                  value={govTitle}
+                  onChange={(e) => setGovTitle(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Assigned Reviewer Username</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="admin"
+                  value={govReviewer}
+                  onChange={(e) => setGovReviewer(e.target.value)}
+                />
+              </div>
+
+              <div className="modal-actions">
+                <button type="button" onClick={() => setIsCreateCampaignOpen(false)} className="btn-secondary">
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary" disabled={createGovCampaignMutation.isPending}>
+                  {createGovCampaignMutation.isPending ? 'Creating...' : 'Launch Campaign'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Executive Sign-off */}
+      {signoffCampaignId && (
+        <div className="modal-overlay">
+          <div className="modal-card">
+            <h3>Executive Sign-off Audit Review</h3>
+            <p>Formally approve and sign off on this quarterly governance review.</p>
+            <div className="form-group">
+              <label>Executive Sign-off Comments</label>
+              <textarea
+                rows={3}
+                className="input-textarea"
+                placeholder="Enter executive sign-off comments..."
+                value={signoffComment}
+                onChange={(e) => setSignoffComment(e.target.value)}
+              />
+            </div>
+            <div className="modal-actions">
+              <button onClick={() => setSignoffCampaignId(null)} className="btn-secondary">
+                Cancel
+              </button>
+              <button
+                onClick={() => signoffMutation.mutate({ reviewId: signoffCampaignId, comments: signoffComment })}
+                className="btn-primary"
+                disabled={signoffMutation.isPending}
+              >
+                {signoffMutation.isPending ? 'Signing Off...' : 'Confirm Executive Sign-off'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Create Automated Report Schedule */}
+      {isCreateScheduleOpen && (
+        <div className="modal-overlay">
+          <div className="modal-card">
+            <h3>Create Automated Report Delivery Schedule</h3>
+            <form onSubmit={handleCreateScheduleSubmit}>
+              <div className="form-group">
+                <label>Schedule Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Weekly Executive Uptime Report"
+                  value={schedName}
+                  onChange={(e) => setSchedName(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-group">
+                  <label>Delivery Frequency</label>
+                  <select value={schedFreq} onChange={(e) => setSchedFreq(e.target.value as any)}>
+                    <option value="weekly">Weekly (Every 7 Days)</option>
+                    <option value="monthly">Monthly (Every 30 Days)</option>
+                    <option value="daily">Daily</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Export Format</label>
+                  <select value={schedFormat} onChange={(e) => setSchedFormat(e.target.value as any)}>
+                    <option value="pdf">PDF Attachment</option>
+                    <option value="excel">Excel Attachment</option>
+                    <option value="both">Both (PDF &amp; Excel)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Recipient Email Addresses (Comma Separated)</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="exec@company.com, ops@company.com"
+                  value={schedRecipients}
+                  onChange={(e) => setSchedRecipients(e.target.value)}
+                />
+              </div>
+
+              <div className="modal-actions">
+                <button type="button" onClick={() => setIsCreateScheduleOpen(false)} className="btn-secondary">
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary" disabled={createScheduleMutation.isPending}>
+                  {createScheduleMutation.isPending ? 'Creating...' : 'Save Schedule Rule'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

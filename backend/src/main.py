@@ -11,9 +11,11 @@ from api.v1.auth import router as auth_router
 from api.v1.cloudflare import router as cloudflare_router
 from api.v1.collectors import router as collectors_router
 from api.v1.datacenters import router as datacenters_router
+from api.v1.governance import router as governance_router
 from api.v1.metrics import router as metrics_router
 from api.v1.nodes import router as nodes_router
 from api.v1.reports import router as reports_router
+from api.v1.secrets import router as secrets_router
 from api.v1.topology import router as topology_router
 from api.v1.ws import router as ws_router
 
@@ -106,6 +108,8 @@ app.include_router(metrics_router, prefix="/api/v1")
 app.include_router(alerts_router, prefix="/api/v1")
 app.include_router(reports_router, prefix="/api/v1")
 app.include_router(cloudflare_router, prefix="/api/v1")
+app.include_router(secrets_router, prefix="/api/v1")
+app.include_router(governance_router, prefix="/api/v1")
 app.include_router(ws_router)
 
 

@@ -137,6 +137,20 @@ export interface AlertItem {
   acknowledged_at: string | null;
   acknowledged_by: string | null;
   escalated: boolean;
+  ticket_id?: string | null;
+  ticket_url?: string | null;
+  ticket_system?: string | null;
+  ticket_status?: string | null;
+  ticket_created_at?: string | null;
+}
+
+export interface CreateTicketPayload {
+  system_type: 'jira' | 'servicenow' | 'itsm_webhook';
+  project_key?: string;
+  issue_type?: string;
+  urgency?: string;
+  summary?: string;
+  description?: string;
 }
 
 export interface AlertRuleItem {
@@ -174,5 +188,78 @@ export interface CloudflareStatusSummary {
   updated_at: string;
   components: CloudflareComponentStatus[];
   incidents: CloudflareIncident[];
+}
+
+export interface UserSnapshotItem {
+  user_id: string;
+  username: string;
+  email: string;
+  role: string;
+  is_active: boolean;
+  snapshot_at: string;
+}
+
+export interface ReviewDecisionItem {
+  user_id: string;
+  decision: 'approve' | 'revoke' | 'modify_role';
+  new_role?: string | null;
+  notes?: string | null;
+  reviewed_by: string;
+  reviewed_at: string;
+}
+
+export interface QuarterlyAuditReviewItem {
+  id: string;
+  quarter: string;
+  title: string;
+  status: 'IN_REVIEW' | 'APPROVED' | 'REJECTED' | 'OVERDUE_ESCALATED';
+  reviewer_username: string;
+  due_date: string;
+  user_snapshots: Record<string, UserSnapshotItem>;
+  review_decisions: Record<string, ReviewDecisionItem>;
+  signoff_by?: string | null;
+  signoff_at?: string | null;
+  digital_signature?: string | null;
+  comments?: string | null;
+  created_at: string;
+}
+
+export interface ComplianceReportData {
+  review_id: string;
+  quarter: string;
+  title: string;
+  status: string;
+  total_accounts: number;
+  approved_accounts: number;
+  revoked_accounts: number;
+  modified_accounts: number;
+  pending_accounts: number;
+  compliance_percentage: number;
+  signoff_by?: string | null;
+  signoff_at?: string | null;
+  digital_signature?: string | null;
+  generated_at: string;
+}
+
+export interface ReportScheduleItem {
+  id: string;
+  name: string;
+  frequency: 'daily' | 'weekly' | 'monthly';
+  report_type: 'weekly' | 'monthly';
+  export_format: 'pdf' | 'excel' | 'both';
+  recipients: string[];
+  is_enabled: boolean;
+  last_run_at?: string | null;
+  next_run_at?: string | null;
+  created_at: string;
+}
+
+export interface CreateReportSchedulePayload {
+  name: string;
+  frequency: 'daily' | 'weekly' | 'monthly';
+  report_type: 'weekly' | 'monthly';
+  export_format: 'pdf' | 'excel' | 'both';
+  recipients: string[];
+  is_enabled?: boolean;
 }
 

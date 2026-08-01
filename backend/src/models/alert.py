@@ -69,6 +69,11 @@ class Alert(Base, UUIDMixin, TimestampMixin):
     acknowledged_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
     last_notified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     escalated: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    ticket_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    ticket_url: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    ticket_system: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    ticket_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    ticket_created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (
         Index("idx_alerts_status_severity", "status", "severity"),

@@ -16,6 +16,8 @@ from models.user import User, UserRole
 
 from models.network import EdgeConfidenceLevel, NetworkEdge, Subnet
 from models.topology_history import TopologyChangeLog, TopologySnapshot
+from models.governance import QuarterlyAuditReview
+from models.report_schedule import ReportSchedule
 
 __all__ = [
     "Base",
@@ -46,4 +48,6 @@ __all__ = [
     "EdgeConfidenceLevel",
     "TopologySnapshot",
     "TopologyChangeLog",
+    "QuarterlyAuditReview",
+    "ReportSchedule",
 ]

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../services/apiClient';
-import { AlertItem, AlertRuleItem } from '../types/api';
+import { AlertItem, AlertRuleItem, CreateTicketPayload } from '../types/api';
 import { useAuth } from '../context/AuthContext';
 import {
   Bell,
@@ -12,6 +12,9 @@ import {
   Plus,
   RefreshCw,
   Check,
+  Ticket,
+  ExternalLink,
+  RotateCw,
 } from 'lucide-react';
 
 export const AlertsPage: React.FC = () => {
@@ -22,6 +25,14 @@ export const AlertsPage: React.FC = () => {
   // ACK Modal State
   const [ackAlert, setAckAlert] = useState<AlertItem | null>(null);
   const [ackNote, setAckNote] = useState('');
+
+  // ITSM Ticket Modal State
+  const [ticketAlert, setTicketAlert] = useState<AlertItem | null>(null);
+  const [systemType, setSystemType] = useState<'jira' | 'servicenow' | 'itsm_webhook'>('jira');
+  const [projectKey, setProjectKey] = useState('INC');
+  const [issueType, setIssueType] = useState('Incident');
+  const [urgency, setUrgency] = useState('High');
+  const [customSummary, setCustomSummary] = useState('');
 
   // Rule Creation Modal State
   const [isAddRuleOpen, setIsAddRuleOpen] = useState(false);
@@ -60,6 +71,25 @@ export const AlertsPage: React.FC = () => {
     },
   });
 
+  // Create Ticket Mutation
+  const createTicketMutation = useMutation({
+    mutationFn: ({ alertId, payload }: { alertId: string; payload: CreateTicketPayload }) =>
+      apiClient.post<AlertItem>(`/alerts/${alertId}/ticket`, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['alerts'] });
+      setTicketAlert(null);
+      setCustomSummary('');
+    },
+  });
+
+  // Sync Ticket Status Mutation
+  const syncTicketMutation = useMutation({
+    mutationFn: (alertId: string) => apiClient.post<AlertItem>(`/alerts/${alertId}/sync-ticket`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['alerts'] });
+    },
+  });
+
   // Create Rule Mutation
   const createRuleMutation = useMutation({
     mutationFn: (body: any) => apiClient.post<AlertRuleItem>('/alerts/rules', body),
@@ -72,6 +102,21 @@ export const AlertsPage: React.FC = () => {
   const handleConfirmAck = () => {
     if (!ackAlert) return;
     ackMutation.mutate({ id: ackAlert.id, note: ackNote });
+  };
+
+  const handleCreateTicketSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ticketAlert) return;
+    createTicketMutation.mutate({
+      alertId: ticketAlert.id,
+      payload: {
+        system_type: systemType,
+        project_key: projectKey,
+        issue_type: issueType,
+        urgency: urgency,
+        summary: customSummary || ticketAlert.message,
+      },
+    });
   };
 
   const handleCreateRule = (e: React.FormEvent) => {
@@ -88,8 +133,8 @@ export const AlertsPage: React.FC = () => {
     <div className="page-container">
       <header className="page-header">
         <div>
-          <h1 className="page-title">Alert Management Engine</h1>
-          <p className="page-subtitle">Real-time alert threshold evaluation, 15m deduplication &amp; escalation</p>
+          <h1 className="page-title">Alert Management &amp; ITSM Ticketing</h1>
+          <p className="page-subtitle">Real-time alert threshold evaluation, Jira/ServiceNow ITSM integration &amp; escalation</p>
         </div>
         <button onClick={() => refetchActive()} className="btn-secondary">
           <RefreshCw className="btn-icon" /> Refresh
@@ -151,8 +196,49 @@ export const AlertsPage: React.FC = () => {
                       <span className="label">Triggered At:</span>
                       <span className="val">{new Date(alert.triggered_at).toLocaleString()}</span>
                     </div>
+
+                    {/* ITSM Ticket Reference Section */}
+                    <div className="info-row" style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px border-subtle' }}>
+                      <span className="label">ITSM Ticket:</span>
+                      {alert.ticket_id ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <a
+                            href={alert.ticket_url || '#'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="badge badge-info"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}
+                          >
+                            <Ticket size={12} /> {alert.ticket_id} ({alert.ticket_status || 'OPEN'})
+                            <ExternalLink size={10} />
+                          </a>
+                          <button
+                            type="button"
+                            title="Sync Ticket Status"
+                            className="btn-icon-only"
+                            onClick={() => syncTicketMutation.mutate(alert.id)}
+                            disabled={syncTicketMutation.isPending}
+                          >
+                            <RotateCw size={12} className={syncTicketMutation.isPending ? 'spin' : ''} />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn-secondary btn-sm"
+                          onClick={() => {
+                            setTicketAlert(alert);
+                            setCustomSummary(`[${alert.severity.toUpperCase()}] ${alert.message}`);
+                          }}
+                          style={{ padding: '2px 8px', fontSize: '0.8rem' }}
+                        >
+                          <Ticket className="btn-icon" size={12} /> Buat Tiket ITSM
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className="card-footer">
+
+                  <div className="card-footer" style={{ gap: '8px' }}>
                     <button
                       onClick={() => setAckAlert(alert)}
                       className="btn-primary btn-block"
@@ -183,7 +269,7 @@ export const AlertsPage: React.FC = () => {
                     <th>Status</th>
                     <th>Message</th>
                     <th>Triggered At</th>
-                    <th>Resolved At</th>
+                    <th>ITSM Ticket</th>
                     <th>Acknowledged By</th>
                   </tr>
                 </thead>
@@ -202,7 +288,31 @@ export const AlertsPage: React.FC = () => {
                       </td>
                       <td>{alert.message}</td>
                       <td>{new Date(alert.triggered_at).toLocaleString()}</td>
-                      <td>{alert.resolved_at ? new Date(alert.resolved_at).toLocaleString() : '-'}</td>
+                      <td>
+                        {alert.ticket_id ? (
+                          <a
+                            href={alert.ticket_url || '#'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="badge badge-info"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}
+                          >
+                            <Ticket size={12} /> {alert.ticket_id}
+                            <ExternalLink size={10} />
+                          </a>
+                        ) : (
+                          <button
+                            className="btn-secondary btn-sm"
+                            onClick={() => {
+                              setTicketAlert(alert);
+                              setCustomSummary(`[${alert.severity.toUpperCase()}] ${alert.message}`);
+                            }}
+                            style={{ padding: '2px 8px', fontSize: '0.75rem' }}
+                          >
+                            <Ticket size={10} /> Buat Tiket
+                          </button>
+                        )}
+                      </td>
                       <td>{alert.acknowledged_by || '-'}</td>
                     </tr>
                   ))}
@@ -282,6 +392,83 @@ export const AlertsPage: React.FC = () => {
                 {ackMutation.isPending ? 'Submitting...' : 'Confirm Acknowledgement'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Create ITSM Ticket */}
+      {ticketAlert && (
+        <div className="modal-overlay">
+          <div className="modal-card" style={{ maxWidth: '540px' }}>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Ticket className="icon-blue" /> Buat Tiket ITSM Insiden
+            </h3>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+              Buat tiket insiden eksternal pada sistem Jira, ServiceNow, atau ITSM Webhook.
+            </p>
+
+            <form onSubmit={handleCreateTicketSubmit}>
+              <div className="form-group">
+                <label>Sistem ITSM Target</label>
+                <select
+                  value={systemType}
+                  onChange={(e) => setSystemType(e.target.value as any)}
+                >
+                  <option value="jira">Jira Cloud / Server REST API</option>
+                  <option value="servicenow">ServiceNow Table API</option>
+                  <option value="itsm_webhook">Generic ITSM Webhook</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-group">
+                  <label>{systemType === 'jira' ? 'Jira Project Key' : 'ServiceNow Category'}</label>
+                  <input
+                    type="text"
+                    value={projectKey}
+                    onChange={(e) => setProjectKey(e.target.value)}
+                    placeholder="INC / INFRA"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>{systemType === 'jira' ? 'Issue Type' : 'Urgency Level'}</label>
+                  {systemType === 'jira' ? (
+                    <select value={issueType} onChange={(e) => setIssueType(e.target.value)}>
+                      <option value="Incident">Incident</option>
+                      <option value="Bug">Bug</option>
+                      <option value="Task">Task</option>
+                    </select>
+                  ) : (
+                    <select value={urgency} onChange={(e) => setUrgency(e.target.value)}>
+                      <option value="High">High (Urgent)</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Low">Low</option>
+                    </select>
+                  )}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Judul Ringkasan Tiket (Summary)</label>
+                <input
+                  type="text"
+                  value={customSummary}
+                  onChange={(e) => setCustomSummary(e.target.value)}
+                  placeholder="Ringkasan insiden..."
+                  required
+                />
+              </div>
+
+              <div className="modal-actions">
+                <button type="button" onClick={() => setTicketAlert(null)} className="btn-secondary">
+                  Batal
+                </button>
+                <button type="submit" className="btn-primary" disabled={createTicketMutation.isPending}>
+                  {createTicketMutation.isPending ? 'Mengirim Tiket...' : 'Buat Tiket ITSM'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -8,8 +8,21 @@ from api.deps import get_current_user, require_role
 from core.database import get_db
 from models.alert import Alert, AlertRule, AlertStatus
 from models.user import User, UserRole
-from schemas.alert import AlertAcknowledgeRequest, AlertResponse, AlertRuleCreate, AlertRuleResponse
+from schemas.alert import (
+    AlertAcknowledgeRequest,
+    AlertResponse,
+    AlertRuleCreate,
+    AlertRuleResponse,
+    CreateTicketRequest,
+    TicketSyncResponse,
+    TicketingWebhookCallback,
+)
 from services.alert_service import acknowledge_alert
+from services.ticketing_service import (
+    create_ticket_for_alert,
+    sync_alert_ticket_status,
+    handle_ticket_webhook_callback,
+)
 
 require_admin_role = require_role([UserRole.ADMIN])
 
@@ -59,6 +72,63 @@ async def acknowledge_alert_endpoint(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
+@router.post("/{alert_id}/ticket", response_model=AlertResponse)
+async def create_alert_ticket_endpoint(
+    alert_id: uuid.UUID,
+    body: CreateTicketRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Manually create an ITSM ticket (Jira / ServiceNow / ITSM Webhook) for an alert."""
+    try:
+        updated_alert = await create_ticket_for_alert(
+            db=db,
+            alert_id=alert_id,
+            system_type=body.system_type,
+            custom_params=body.model_dump(),
+            username=current_user.username,
+        )
+        return updated_alert
+    except KeyError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.post("/{alert_id}/sync-ticket", response_model=AlertResponse)
+async def sync_alert_ticket_endpoint(
+    alert_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Synchronize ticket status with external ITSM system."""
+    try:
+        updated_alert = await sync_alert_ticket_status(db=db, alert_id=alert_id)
+        return updated_alert
+    except KeyError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.post("/tickets/webhook-callback")
+async def ticket_webhook_callback_endpoint(
+    body: TicketingWebhookCallback,
+    db: AsyncSession = Depends(get_db),
+):
+    """Receiver endpoint for Jira / ServiceNow status update webhooks."""
+    updated_alert = await handle_ticket_webhook_callback(
+        db=db,
+        alert_id=body.alert_id,
+        ticket_id=body.ticket_id,
+        ticket_status=body.ticket_status,
+        notes=body.notes,
+    )
+    if not updated_alert:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Matching alert/ticket not found")
+    return {"status": "success", "alert_id": str(updated_alert.id), "ticket_status": updated_alert.ticket_status}
+
+
 @router.get("/rules", response_model=List[AlertRuleResponse])
 async def get_alert_rules(
     db: AsyncSession = Depends(get_db),
@@ -82,3 +152,4 @@ async def create_alert_rule(
     await db.commit()
     await db.refresh(rule)
     return rule
+

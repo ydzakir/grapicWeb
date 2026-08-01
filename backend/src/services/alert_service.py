@@ -84,6 +84,21 @@ async def evaluate_node_telemetry_alerts(
                     should_notify = True
                     msg = f"[ESCALATED] {msg}"
 
+                    # Auto-create ITSM ticket if not created already
+                    if not active_alert.ticket_id:
+                        try:
+                            from services.ticketing_service import create_ticket_for_alert
+                            await create_ticket_for_alert(
+                                db=db,
+                                alert_id=active_alert.id,
+                                system_type="jira",
+                                custom_params={"summary": f"[ESCALATED] {msg}"},
+                                username="system_auto_escalation",
+                            )
+                        except Exception as err:
+                            import logging
+                            logging.getLogger("alert_service").warning(f"Auto ticketing on escalation failed: {err}")
+
                 if should_notify:
                     provider = get_notification_provider("log")
                     await provider.send_notification(
