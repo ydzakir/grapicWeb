@@ -71,3 +71,45 @@ def require_role(allowed_roles: list[UserRole]) -> Callable[[User], User]:
         return current_user
 
     return role_checker
+
+
+def require_granular_permission(permission: str, required_scope: str | None = None) -> Callable[[User], User]:
+    """Enforce Granular Permission & Node Group Scoping (HTTP 403 Forbidden)."""
+
+    def permission_checker(current_user: User = Depends(get_current_user)) -> User:
+        # Admin role bypasses granular restrictions
+        if current_user.role == UserRole.ADMIN:
+            return current_user
+
+        # Extract custom permissions list
+        user_perms = []
+        if isinstance(current_user.custom_permissions, dict):
+            user_perms = current_user.custom_permissions.get("permissions", [])
+        elif isinstance(current_user.custom_permissions, list):
+            user_perms = current_user.custom_permissions
+
+        # Check granular permission
+        if permission not in user_perms and "*" not in user_perms:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={"code": "FORBIDDEN", "message": f"User lacks required granular permission '{permission}'"},
+            )
+
+        # Check group scope restriction if specified
+        if required_scope:
+            allowed_scopes = ["*"]
+            if isinstance(current_user.allowed_group_scopes, dict):
+                allowed_scopes = current_user.allowed_group_scopes.get("scopes", ["*"])
+            elif isinstance(current_user.allowed_group_scopes, list):
+                allowed_scopes = current_user.allowed_group_scopes
+
+            if "*" not in allowed_scopes and required_scope not in allowed_scopes:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail={"code": "FORBIDDEN", "message": f"User scope does not permit access to node group '{required_scope}'"},
+                )
+
+        return current_user
+
+    return permission_checker
+

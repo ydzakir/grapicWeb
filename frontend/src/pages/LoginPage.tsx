@@ -1,15 +1,54 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Activity, Lock, User as UserIcon, AlertCircle } from 'lucide-react';
+import { Activity, Lock, User as UserIcon, AlertCircle, Shield, Key, ExternalLink } from 'lucide-react';
+import { apiClient } from '../services/apiClient';
 
 export const LoginPage: React.FC = () => {
+  const [authMode, setAuthMode] = useState<'local' | 'ldap'>('local');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Check for OIDC Callback code in URL
+  useEffect(() => {
+    const oidcCode = searchParams.get('code');
+    if (oidcCode) {
+      handleOidcCallback(oidcCode);
+    }
+  }, [searchParams]);
+
+  const handleOidcCallback = async (code: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await apiClient.post<any>('/auth/oidc/callback', { code });
+      login(data.access_token, data.user);
+      navigate('/');
+    } catch (err: any) {
+      setError(err.message || 'OIDC Single Sign-On authentication failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOidcAuthorize = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await apiClient.get<any>('/auth/oidc/authorize');
+      if (data.authorization_url) {
+        window.location.href = data.authorization_url;
+      }
+    } catch (err: any) {
+      setError('Could not initialize OIDC Single Sign-On URL.');
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,26 +56,28 @@ export const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      const formData = new URLSearchParams();
-      formData.append('username', username);
-      formData.append('password', password);
+      let data: any;
+      if (authMode === 'ldap') {
+        data = await apiClient.post<any>('/auth/ldap/login', { username, password });
+      } else {
+        const formData = new URLSearchParams();
+        formData.append('username', username);
+        formData.append('password', password);
 
-      const resp = await fetch('/api/v1/auth/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: formData.toString(),
-      });
+        const resp = await fetch('/api/v1/auth/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: formData.toString(),
+        });
 
-      if (!resp.ok) {
-        const data = await resp.json().catch(() => ({}));
-        throw new Error(data?.error?.message || data?.detail || 'Invalid credentials');
+        if (!resp.ok) {
+          const errData = await resp.json().catch(() => ({}));
+          throw new Error(errData?.error?.message || errData?.detail || 'Invalid credentials');
+        }
+        data = await resp.json();
       }
 
-      const tokenData = await resp.json();
-      const token = tokenData.access_token;
-
+      const token = data.access_token;
       // Fetch user profile
       const userResp = await fetch('/api/v1/auth/me', {
         headers: { Authorization: `Bearer ${token}` },
@@ -59,8 +100,8 @@ export const LoginPage: React.FC = () => {
           <div className="login-logo">
             <Activity className="login-icon" />
           </div>
-          <h2>InfraTopology MVP</h2>
-          <p>Infrastructure Monitoring &amp; Auto-Topology System</p>
+          <h2>Enterprise Infrastructure Monitoring</h2>
+          <p>Multi-Driver SSO, LDAP / Active Directory &amp; RBAC Access System</p>
         </div>
 
         {error && (
@@ -70,9 +111,52 @@ export const LoginPage: React.FC = () => {
           </div>
         )}
 
+        {/* Enterprise OIDC Single Sign-On Button */}
+        <div className="sso-section" style={{ marginBottom: '16px' }}>
+          <button
+            type="button"
+            className="btn-secondary btn-block"
+            onClick={handleOidcAuthorize}
+            disabled={loading}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px' }}
+          >
+            <Shield className="icon-blue" size={18} />
+            <span>Login with Enterprise OIDC / Single Sign-On</span>
+            <ExternalLink size={14} />
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '16px 0', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+          <div style={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
+          <span>OR USE DIRECT LOGIN</span>
+          <div style={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
+        </div>
+
+        {/* Driver Selector Tabs */}
+        <div className="admin-tabs" style={{ marginBottom: '16px' }}>
+          <button
+            type="button"
+            className={`tab-btn ${authMode === 'local' ? 'active' : ''}`}
+            onClick={() => setAuthMode('local')}
+            style={{ padding: '6px 12px', fontSize: '0.85rem' }}
+          >
+            <Key size={14} className="tab-icon" /> Local Fallback
+          </button>
+          <button
+            type="button"
+            className={`tab-btn ${authMode === 'ldap' ? 'active' : ''}`}
+            onClick={() => setAuthMode('ldap')}
+            style={{ padding: '6px 12px', fontSize: '0.85rem' }}
+          >
+            <Shield size={14} className="tab-icon" /> LDAP / Active Directory
+          </button>
+        </div>
+
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
-            <label htmlFor="username">Username or Email</label>
+            <label htmlFor="username">
+              {authMode === 'ldap' ? 'LDAP Username / Principal' : 'Username or Email'}
+            </label>
             <div className="input-with-icon">
               <UserIcon className="input-icon" />
               <input
@@ -80,7 +164,7 @@ export const LoginPage: React.FC = () => {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="admin@infra.com"
+                placeholder={authMode === 'ldap' ? 'ldapuser@company.internal' : 'admin@infra.com'}
                 required
                 disabled={loading}
               />
@@ -104,13 +188,14 @@ export const LoginPage: React.FC = () => {
           </div>
 
           <button type="submit" className="btn-primary btn-block" disabled={loading}>
-            {loading ? 'Authenticating...' : 'Sign In'}
+            {loading ? 'Authenticating...' : `Sign In (${authMode === 'ldap' ? 'LDAP / AD' : 'Local'})`}
           </button>
         </form>
 
         <div className="login-footer">
           <p className="demo-hint">
-            <strong>Default Admin Demo:</strong> <code>admin@infra.com</code> / <code>AdminSecurePass123!</code>
+            <strong>Default Admin Demo:</strong> <code>admin@infra.com</code> / <code>AdminSecurePass123!</code><br />
+            <strong>LDAP Demo:</strong> <code>ldapuser</code> / <code>LdapSecurePass123!</code>
           </p>
         </div>
       </div>

@@ -1,7 +1,9 @@
 import enum
 
-from sqlalchemy import Boolean, String
+from typing import Any
+from sqlalchemy import JSON, Boolean, String
 from sqlalchemy import Enum as SQLEnum
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.database import Base
@@ -27,3 +29,12 @@ class User(Base, UUIDMixin, TimestampMixin):
         index=True
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    # Granular RBAC Permissions & Group Scoping
+    custom_permissions: Mapped[dict[str, Any]] = mapped_column(
+        JSONB().with_variant(JSON(), "sqlite"), default=dict, nullable=False, server_default="{}"
+    )
+    allowed_group_scopes: Mapped[dict[str, Any]] = mapped_column(
+        JSONB().with_variant(JSON(), "sqlite"), default=dict, nullable=False, server_default="{}"
+    )
+

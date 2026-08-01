@@ -100,6 +100,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 # Register routers
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(users_router, prefix="/api/v1")
 app.include_router(collectors_router, prefix="/api/v1")
 app.include_router(nodes_router, prefix="/api/v1")
 app.include_router(datacenters_router, prefix="/api/v1")

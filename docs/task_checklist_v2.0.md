@@ -6,15 +6,15 @@ Dokumen pelacakan tugas untuk perencanaan dan implementasi **Versi 2.0** aplikas
 
 ## Modul Subproyek V2.0
 
-### [ ] Subproyek 1 — Advanced User Management & Granular RBAC
-- [ ] Implementasi Perizinan Granular (Node Group Scoping, Custom Role Definitions)
-- [ ] Interface Manajemen Pengguna & Peran Administratif
-- [ ] Pengujian Integrasi Access Control
+### [x] Subproyek 1 — Advanced User Management & Granular RBAC (**SELESAI & TERUJI 100%**)
+- [x] Implementasi Perizinan Granular (Node Group Scoping, Custom Role Definitions)
+- [x] Interface Manajemen Pengguna & Peran Administratif
+- [x] Pengujian Integrasi Access Control
 
-### [ ] Subproyek 2 — Enterprise SSO & LDAP / OpenID Connect (OIDC) Authentication
-- [ ] Driver Autentikasi LDAP / Active Directory & OAuth2/OIDC
-- [ ] Auto-provisioning User Profile & Role Mapping
-- [ ] Single Sign-On Flow & Fallback Authentication
+### [x] Subproyek 2 — Enterprise SSO & LDAP / OpenID Connect (OIDC) Authentication (**SELESAI & TERUJI 100%**)
+- [x] Driver Autentikasi LDAP / Active Directory & OAuth2/OIDC
+- [x] Auto-provisioning User Profile & Role Mapping
+- [x] Single Sign-On Flow & Fallback Authentication
 
 ### [x] Subproyek 3 — Laporan Rekapitulasi Historis PDF & Excel
 - [x] Generator Laporan PDF (Uptime Summary, Incident Log, Asset Inventory)

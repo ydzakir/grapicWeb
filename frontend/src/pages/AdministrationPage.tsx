@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../services/apiClient';
-import { CollectorTarget, DataCenter, PaginatedNodes, QuarterlyAuditReviewItem, ReportScheduleItem } from '../types/api';
+import { CollectorTarget, DataCenter, PaginatedNodes, QuarterlyAuditReviewItem, ReportScheduleItem, UserDetailItem } from '../types/api';
 import {
   Server,
   Plus,
@@ -21,11 +21,13 @@ import {
   Mail,
   Play,
   Trash2,
+  Users,
+  Key,
 } from 'lucide-react';
 
 export const AdministrationPage: React.FC = () => {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'collectors' | 'datacenters' | 'pending' | 'reports' | 'governance'>('collectors');
+  const [activeTab, setActiveTab] = useState<'collectors' | 'datacenters' | 'pending' | 'reports' | 'governance' | 'users'>('collectors');
   const [reportType, setReportType] = useState<'weekly' | 'monthly'>('weekly');
   const [reportFormat, setReportFormat] = useState<'pdf' | 'excel'>('pdf');
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
@@ -62,6 +64,15 @@ export const AdministrationPage: React.FC = () => {
   const [schedReportType, setSchedReportType] = useState<'weekly' | 'monthly'>('weekly');
   const [schedFormat, setSchedFormat] = useState<'pdf' | 'excel' | 'both'>('pdf');
   const [schedRecipients, setSchedRecipients] = useState('exec@company.com, ops@company.com');
+
+  // User Management & RBAC State
+  const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
+  const [newUsername, setNewUsername] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newRole, setNewRole] = useState<'admin' | 'operator' | 'viewer'>('operator');
+  const [selectedPerms, setSelectedPerms] = useState<string[]>(['nodes:read', 'nodes:write', 'topology:read']);
+  const [scopesStr, setScopesStr] = useState('Jakarta-DC, *');
 
   // Fetch Collector Targets
   const { data: targets, isLoading: isLoadingTargets } = useQuery<CollectorTarget[]>({
@@ -108,6 +119,13 @@ export const AdministrationPage: React.FC = () => {
     queryKey: ['report-schedules'],
     queryFn: () => apiClient.get<ReportScheduleItem[]>('/reports/schedules'),
     enabled: activeTab === 'reports',
+  });
+
+  // Fetch Users List
+  const { data: userList, isLoading: isLoadingUsers } = useQuery<UserDetailItem[]>({
+    queryKey: ['users-list'],
+    queryFn: () => apiClient.get<UserDetailItem[]>('/users'),
+    enabled: activeTab === 'users',
   });
 
   // Create Collector Target Mutation
@@ -224,6 +242,26 @@ export const AdministrationPage: React.FC = () => {
     },
   });
 
+  // Create User Mutation
+  const createUserMutation = useMutation({
+    mutationFn: (body: any) => apiClient.post<UserDetailItem>('/users', body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users-list'] });
+      setIsCreateUserOpen(false);
+      setNewUsername('');
+      setNewEmail('');
+      setNewPassword('');
+    },
+  });
+
+  // Delete User Mutation
+  const deleteUserMutation = useMutation({
+    mutationFn: (userId: string) => apiClient.delete(`/users/${userId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users-list'] });
+    },
+  });
+
   const resetTargetForm = () => {
     setTargetName('');
     setTargetType('ssh');
@@ -284,6 +322,24 @@ export const AdministrationPage: React.FC = () => {
     });
   };
 
+  const handleCreateUserSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const scopesList = scopesStr
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    createUserMutation.mutate({
+      username: newUsername,
+      email: newEmail,
+      password: newPassword,
+      role: newRole,
+      custom_permissions: selectedPerms,
+      allowed_group_scopes: scopesList,
+      is_active: true,
+    });
+  };
+
   const handleDownloadReport = async () => {
     setIsGeneratingReport(true);
     try {
@@ -305,12 +361,23 @@ export const AdministrationPage: React.FC = () => {
     }
   };
 
+  const availablePermList = [
+    { key: 'nodes:read', label: 'Read Nodes' },
+    { key: 'nodes:write', label: 'Manage Nodes' },
+    { key: 'topology:read', label: 'Read Topology' },
+    { key: 'topology:edit', label: 'Edit Topology' },
+    { key: 'alerts:read', label: 'Read Alerts' },
+    { key: 'alerts:ack', label: 'Acknowledge Alerts' },
+    { key: 'reports:export', label: 'Export Reports' },
+    { key: 'vault:manage', label: 'Manage Secrets' },
+  ];
+
   return (
     <div className="page-container">
       <header className="page-header">
         <div>
           <h1 className="page-title">System Administration &amp; Governance</h1>
-          <p className="page-subtitle">Manage collectors, data centers, node approvals, reports &amp; quarterly RBAC governance reviews</p>
+          <p className="page-subtitle">Manage collectors, data centers, node approvals, reports, RBAC users &amp; quarterly audit reviews</p>
         </div>
       </header>
 
@@ -342,6 +409,13 @@ export const AdministrationPage: React.FC = () => {
           onClick={() => setActiveTab('reports')}
         >
           <FileText className="tab-icon" /> Executive Reports
+        </button>
+
+        <button
+          className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
+          onClick={() => setActiveTab('users')}
+        >
+          <Users className="tab-icon" /> User Management &amp; RBAC
         </button>
 
         <button
@@ -607,7 +681,93 @@ export const AdministrationPage: React.FC = () => {
         </div>
       )}
 
-      {/* Tab 5: Governance & Quarterly Audit */}
+      {/* Tab 5: User Management & Granular RBAC */}
+      {activeTab === 'users' && (
+        <div className="tab-content">
+          <div className="tab-header">
+            <h3>User Accounts &amp; Granular RBAC Management</h3>
+            <button onClick={() => setIsCreateUserOpen(true)} className="btn-primary">
+              <Plus className="btn-icon" /> Create User Account
+            </button>
+          </div>
+
+          {isLoadingUsers ? (
+            <div className="loading-state">Loading user accounts...</div>
+          ) : !userList || userList.length === 0 ? (
+            <div className="empty-state">No users found.</div>
+          ) : (
+            <div className="table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>System Role</th>
+                    <th>Granular Permissions</th>
+                    <th>Node Scopes</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {userList.map((user) => {
+                    const perms = user.custom_permissions?.permissions || [];
+                    const scopes = user.allowed_group_scopes?.scopes || ['*'];
+                    return (
+                      <tr key={user.id}>
+                        <td><strong>{user.username}</strong></td>
+                        <td>{user.email}</td>
+                        <td>
+                          <span className={`badge badge-${user.role === 'admin' ? 'up' : user.role === 'operator' ? 'warning' : 'info'}`}>
+                            {user.role.toUpperCase()}
+                          </span>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                            {perms.length === 0 ? (
+                              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Default Role</span>
+                            ) : (
+                              perms.map((p) => (
+                                <code key={p} className="node-type-tag" style={{ fontSize: '0.75rem' }}>{p}</code>
+                              ))
+                            )}
+                          </div>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                            {scopes.map((s) => (
+                              <span key={s} className="badge badge-subtle" style={{ fontSize: '0.75rem' }}>{s}</span>
+                            ))}
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`status-pill ${user.is_active ? 'online' : 'offline'}`}>
+                            {user.is_active ? 'ACTIVE' : 'INACTIVE'}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="action-buttons">
+                            <button
+                              onClick={() => deleteUserMutation.mutate(user.id)}
+                              className="btn-danger btn-sm"
+                              disabled={deleteUserMutation.isPending || user.username === 'admin'}
+                              title="Delete User"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab 6: Governance & Quarterly Audit */}
       {activeTab === 'governance' && (
         <div className="tab-content">
           <div className="tab-header">
@@ -1040,6 +1200,103 @@ export const AdministrationPage: React.FC = () => {
                 </button>
                 <button type="submit" className="btn-primary" disabled={createScheduleMutation.isPending}>
                   {createScheduleMutation.isPending ? 'Creating...' : 'Save Schedule Rule'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Create User Account & Granular RBAC */}
+      {isCreateUserOpen && (
+        <div className="modal-overlay">
+          <div className="modal-card modal-lg">
+            <h3>Create User Account &amp; Granular Permissions</h3>
+            <form onSubmit={handleCreateUserSubmit}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-group">
+                  <label>Username</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. operator_jkt"
+                    value={newUsername}
+                    onChange={(e) => setNewUsername(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Email Address</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="e.g. operator@company.com"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-group">
+                  <label>Password</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••••••"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>System Role</label>
+                  <select value={newRole} onChange={(e) => setNewRole(e.target.value as any)}>
+                    <option value="operator">Operator (Custom RBAC)</option>
+                    <option value="admin">Administrator (Full Access)</option>
+                    <option value="viewer">Viewer (Read-only)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Granular Permissions (Custom RBAC)</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '6px' }}>
+                  {availablePermList.map((perm) => (
+                    <label key={perm.key} className="checkbox-row" style={{ fontSize: '0.85rem' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedPerms.includes(perm.key)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedPerms([...selectedPerms, perm.key]);
+                          } else {
+                            setSelectedPerms(selectedPerms.filter((p) => p !== perm.key));
+                          }
+                        }}
+                      />
+                      <span><strong>{perm.label}</strong> (<code>{perm.key}</code>)</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Allowed Node Group Scopes (Comma Separated)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Jakarta-DC, Bandung-DC or * for all"
+                  value={scopesStr}
+                  onChange={(e) => setScopesStr(e.target.value)}
+                />
+              </div>
+
+              <div className="modal-actions">
+                <button type="button" onClick={() => setIsCreateUserOpen(false)} className="btn-secondary">
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary" disabled={createUserMutation.isPending}>
+                  {createUserMutation.isPending ? 'Creating...' : 'Create Account'}
                 </button>
               </div>
             </form>

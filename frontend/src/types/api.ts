@@ -263,3 +263,34 @@ export interface CreateReportSchedulePayload {
   is_enabled?: boolean;
 }
 
+export interface UserDetailItem {
+  id: string;
+  username: string;
+  email: string;
+  role: 'admin' | 'operator' | 'viewer';
+  is_active: boolean;
+  custom_permissions: { permissions: string[] };
+  allowed_group_scopes: { scopes: string[] };
+  created_at: string;
+}
+
+export interface CreateUserPayload {
+  username: string;
+  email: string;
+  password: string;
+  role: 'admin' | 'operator' | 'viewer';
+  custom_permissions?: string[];
+  allowed_group_scopes?: string[];
+  is_active?: boolean;
+}
+
+export interface UpdateUserPayload {
+  email?: string;
+  password?: string;
+  role?: 'admin' | 'operator' | 'viewer';
+  custom_permissions?: string[];
+  allowed_group_scopes?: string[];
+  is_active?: boolean;
+}
+
+
