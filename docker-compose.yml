@@ -17,7 +17,7 @@ services:
     container_name: infra_postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-monitoring_admin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_this_in_production_secure_pass_123}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-monitoring_db}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -61,9 +61,9 @@ services:
       POSTGRES_SERVER: postgres
       POSTGRES_PORT: 5432
       POSTGRES_USER: ${POSTGRES_USER:-monitoring_admin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_this_in_production_secure_pass_123}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-monitoring_db}
-      SECRET_KEY: ${SECRET_KEY:-change_this_to_a_secure_random_64_char_string_for_production}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
       ENVIRONMENT: ${ENVIRONMENT:-development}
       PROMETHEUS_URL: http://prometheus:9090
     networks:
@@ -90,12 +90,13 @@ services:
     container_name: infra_collector_worker
     command: ["python", "src/worker.py"]
     environment:
+      PYTHONPATH: /app/src
       POSTGRES_SERVER: postgres
       POSTGRES_PORT: 5432
       POSTGRES_USER: ${POSTGRES_USER:-monitoring_admin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_this_in_production_secure_pass_123}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-monitoring_db}
-      SECRET_KEY: ${SECRET_KEY:-change_this_to_a_secure_random_64_char_string_for_production}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
       ENVIRONMENT: ${ENVIRONMENT:-development}
     networks:
       - internal_network

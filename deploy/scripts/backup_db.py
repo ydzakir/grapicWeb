@@ -42,7 +42,7 @@ def backup_database(db_url: str, output_dir: str, retention_days: int = 30) -> s
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Backup PostgreSQL Database")
-    parser.add_argument("--db-url", default=os.getenv("DATABASE_URL", "postgresql://monitoring_admin:change_this_in_production_secure_pass_123@localhost:5432/monitoring_db"))
+    parser.add_argument("--db-url", default=os.getenv("DATABASE_URL", "postgresql://monitoring_admin:<GANTI_SAYA>@localhost:5432/monitoring_db"))
     parser.add_argument("--output-dir", default="./backups")
     args = parser.parse_args()
 

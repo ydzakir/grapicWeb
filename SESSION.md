@@ -288,6 +288,17 @@ Jika pengguna meminta modifikasi, penambahan fitur baru, atau perbaikan kode di 
   - `npm run build` → **0 Error (Build Selesai 100%)**.
   - `npm test` → **4 passed / 0 failed (100% Pass)**.
 
+### Modul R7 — Keamanan & Secret (2 Agustus 2026)
+- **Problem**: Penggunaan plain-text password fallback di `docker-compose*.yml`, `core/config.py`, `backup_db.py`, dan `docker-compose.vault.yml`.
+- **Solusi**:
+  1. Mengganti semua fallback plain-text password pada `docker-compose.yml` & `docker-compose.ha.yml` dengan sintaks wajib variable environment `${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}` dan `${SECRET_KEY:?Set SECRET_KEY in .env}`.
+  2. Mengganti fallback password pada `core/config.py` dan `backup_db.py` dengan `<GANTI_SAYA>` serta menyetel pemeriksaan error fatal jika dijalankan di mode produksi tanpa secret nyata.
+  3. Mengamankan `VAULT_DEV_ROOT_TOKEN_ID` di `docker-compose.vault.yml` agar menggunakan variabel lingkungan.
+  4. Pengujian verifikasi RBAC granular `reports:export` dan `alerts:ack` telah dipastikan aktif pada controller endpoints.
+- **Hasil Verifikasi**:
+  - `backend\.venv\Scripts\pytest.exe backend/tests` → **42 Passed / 0 Failed (100% Pass)**.
+
+
 
 
 

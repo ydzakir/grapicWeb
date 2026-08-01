@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     POSTGRES_SERVER: str = "postgres"
     POSTGRES_PORT: int = 5432
     POSTGRES_USER: str = "monitoring_admin"
-    POSTGRES_PASSWORD: str = "change_this_in_production_secure_pass_123"
+    POSTGRES_PASSWORD: str = "<GANTI_SAYA>"
     POSTGRES_DB: str = "monitoring_db"
 
     @property
@@ -40,7 +40,7 @@ class Settings(BaseSettings):
 
     def _require_secure_secret(self) -> str:
         """Refuse to run in production without an explicitly configured secret."""
-        if not self.SECRET_KEY or "change_this" in self.SECRET_KEY:
+        if not self.SECRET_KEY or "change_this" in self.SECRET_KEY or "<GANTI_SAYA>" in self.SECRET_KEY:
             if self.ENVIRONMENT == "production":
                 raise RuntimeError(
                     "SECRET_KEY must be set to a strong random value in production. "
@@ -64,7 +64,7 @@ class Settings(BaseSettings):
     PGBOUNCER_HOST: str = "pgbouncer"
     PGBOUNCER_PORT: int = 6432
     PGBOUNCER_USER: str = "monitoring_admin"
-    PGBOUNCER_PASSWORD: str = "change_this_in_production_secure_pass_123"
+    PGBOUNCER_PASSWORD: str = "<GANTI_SAYA>"
     PGBOUNCER_DB: str = "monitoring_db"
 
     @property
