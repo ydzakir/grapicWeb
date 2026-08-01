@@ -19,6 +19,17 @@ class CollectorTargetBase(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
+    @field_validator("target_type", mode="before")
+    @classmethod
+    def map_target_type(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            val_lower = v.lower()
+            if val_lower == "docker":
+                return TargetType.DOCKER_TLS
+            elif val_lower == "hyperv":
+                return TargetType.WINRM
+        return v
+
     @field_validator("poll_interval_seconds")
     @classmethod
     def validate_poll_interval(cls, v: int) -> int:
@@ -42,6 +53,17 @@ class CollectorTargetUpdate(BaseModel):
     metadata: dict[str, Any] | None = Field(None, alias="metadata_")
 
     model_config = ConfigDict(populate_by_name=True)
+
+    @field_validator("target_type", mode="before")
+    @classmethod
+    def map_target_type(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            val_lower = v.lower()
+            if val_lower == "docker":
+                return TargetType.DOCKER_TLS
+            elif val_lower == "hyperv":
+                return TargetType.WINRM
+        return v
 
     @field_validator("poll_interval_seconds")
     @classmethod

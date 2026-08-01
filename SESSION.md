@@ -268,6 +268,16 @@ Jika pengguna meminta modifikasi, penambahan fitur baru, atau perbaikan kode di 
 - **Hasil Verifikasi**:
   - `backend\.venv\Scripts\pytest.exe backend/tests` → **42 Passed / 0 Failed (100% Pass)**.
 
+### Modul R5 — Alembic Migration Lengkap & Skema Benar (2 Agustus 2026)
+- **Problem**: Inkompatibilitas enum `target_type` (seperti `'docker'`/`'hyperv'`) dan perlunya kelengkapan 15 tabel pada skema basis data PostgreSQL.
+- **Solusi**:
+  1. Migration Alembic `2026_07_30_0001_initial_schema.py` dikonfirmasi mencakup seluruh 15 tabel sistem (`alert_rules`, `alerts`, `notification_providers`, `subnets`, `network_edges`, `topology_snapshots`, `topology_change_logs`, `report_schedules`, `quarterly_audit_reviews`, dll).
+  2. Map validator `target_type` pada Pydantic `collector.py` schema untuk mengkonversi nilai input `'docker'` -> `DOCKER_TLS` dan `'hyperv'` -> `WINRM`.
+  3. Enum `target_type_enum` menyertakan `'fake'` untuk kebutuhan testing.
+- **Hasil Verifikasi**:
+  - `backend\.venv\Scripts\pytest.exe backend/tests` → **42 Passed / 0 Failed (100% Pass)**.
+
+
 
 
 
