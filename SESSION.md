@@ -262,10 +262,12 @@ Jika pengguna meminta modifikasi, penambahan fitur baru, atau perbaikan kode di 
 - **Problem**: Cron engine pengiriman laporan otomatis belum menyertakan pengiriman SMTP aktual dengan lampiran PDF/Excel.
 - **Solusi**:
   1. `notification_service.py` diperbarui dengan pengiriman email via `smtplib` (`MIMEMultipart`, `MIMEApplication`, `MIMEText`) secara non-blocking (`asyncio.to_thread`).
-  2. `report_scheduler_service.py` dihubungkan untuk menyertakan lampiran file PDF dan Excel pada laporan eksekutif HTML.
-  3. Konfigurasi contoh SMTP ditambahkan pada `.env.example`.
+  2. `BaseNotificationProvider`, `LogNotificationProvider`, dan `WebhookNotificationProvider` disinkronkan untuk menerima argumen opsional `attachments` dan `html_body`.
+  3. `report_scheduler_service.py` dihubungkan untuk menyertakan lampiran file PDF dan Excel pada laporan eksekutif HTML.
+  4. Konfigurasi contoh SMTP ditambahkan pada `.env.example`.
 - **Hasil Verifikasi**:
   - `backend\.venv\Scripts\pytest.exe backend/tests` → **42 Passed / 0 Failed (100% Pass)**.
+
 
 
 

@@ -11,7 +11,15 @@ class BaseNotificationProvider(abc.ABC):
     """Abstract base class for notification providers."""
 
     @abc.abstractmethod
-    async def send_notification(self, title: str, message: str, severity: str, details: dict[str, Any]) -> bool:
+    async def send_notification(
+        self,
+        title: str,
+        message: str,
+        severity: str,
+        details: dict[str, Any],
+        attachments: list[str] | None = None,
+        html_body: str | None = None,
+    ) -> bool:
         pass
 
 
@@ -21,9 +29,17 @@ class LogNotificationProvider(BaseNotificationProvider):
     def __init__(self, config: dict[str, Any] | None = None):
         self.config = config or {}
 
-    async def send_notification(self, title: str, message: str, severity: str, details: dict[str, Any]) -> bool:
+    async def send_notification(
+        self,
+        title: str,
+        message: str,
+        severity: str,
+        details: dict[str, Any],
+        attachments: list[str] | None = None,
+        html_body: str | None = None,
+    ) -> bool:
         log_level = logging.WARNING if severity == "warning" else logging.ERROR
-        logger.log(log_level, f"[NOTIFICATION - {severity.upper()}] {title}: {message} | Details: {details}")
+        logger.log(log_level, f"[NOTIFICATION - {severity.upper()}] {title}: {message} | Details: {details} | Attachments: {attachments}")
         return True
 
 
@@ -34,7 +50,15 @@ class WebhookNotificationProvider(BaseNotificationProvider):
         self.webhook_url = config.get("webhook_url", "")
         self.headers = config.get("headers", {"Content-Type": "application/json"})
 
-    async def send_notification(self, title: str, message: str, severity: str, details: dict[str, Any]) -> bool:
+    async def send_notification(
+        self,
+        title: str,
+        message: str,
+        severity: str,
+        details: dict[str, Any],
+        attachments: list[str] | None = None,
+        html_body: str | None = None,
+    ) -> bool:
         if not self.webhook_url:
             logger.warning("Webhook URL not configured.")
             return False
@@ -44,6 +68,7 @@ class WebhookNotificationProvider(BaseNotificationProvider):
             "message": message,
             "severity": severity,
             "details": details,
+            "attachments": attachments or [],
         }
 
         try:
