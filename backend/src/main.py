@@ -17,6 +17,7 @@ from api.v1.nodes import router as nodes_router
 from api.v1.reports import router as reports_router
 from api.v1.secrets import router as secrets_router
 from api.v1.topology import router as topology_router
+from api.v1.users import router as users_router
 from api.v1.ws import router as ws_router
 
 from core.config import settings
