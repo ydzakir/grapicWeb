@@ -105,7 +105,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "test", "-f", "/tmp/worker_heartbeat"]
+      test: ["CMD", "python", "-c", "import os; exit(0 if os.path.exists('/tmp/worker_heartbeat') else 1)"]
       interval: 10s
       timeout: 5s
       retries: 3

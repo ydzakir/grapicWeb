@@ -298,6 +298,15 @@ Jika pengguna meminta modifikasi, penambahan fitur baru, atau perbaikan kode di 
 - **Hasil Verifikasi**:
   - `backend\.venv\Scripts\pytest.exe backend/tests` → **42 Passed / 0 Failed (100% Pass)**.
 
+### Modul R8 — Worker & Compose Production Correct (2 Agustus 2026)
+- **Problem**: Konfigurasi Nginx proxy WebSocket dan healthcheck container `collector-worker` pada Docker Compose.
+- **Solusi**:
+  1. Nginx `default.conf` diperbarui menggunakan regex `location ~ ^/(ws|api/v1/ws)/` dengan header `Upgrade`, `Connection "Upgrade"`, dan `proxy_read_timeout 86400s`.
+  2. Container `collector-worker` healthcheck dikonfigurasi menggunakan script liveness Python `import os; exit(0 if os.path.exists('/tmp/worker_heartbeat') else 1)` dengan `start_period: 10s`.
+- **Hasil Verifikasi**:
+  - `backend\.venv\Scripts\pytest.exe backend/tests` → **42 Passed / 0 Failed (100% Pass)**.
+
+
 
 
 
