@@ -46,6 +46,19 @@ async def process_collector_success(
         await db.commit()
         await db.refresh(node)
 
+        if node.review_status == ReviewStatus.APPROVED and node.lifecycle_status == LifecycleStatus.ACTIVE:
+            try:
+                from services.status_broadcaster import broadcast_node_status_change
+                await broadcast_node_status_change(
+                    node_id=str(node.id),
+                    name=node.name,
+                    node_type=node.type.value if hasattr(node.type, "value") else str(node.type),
+                    status=node.status.value if hasattr(node.status, "value") else str(node.status),
+                    last_seen=node.last_seen.isoformat() if node.last_seen else None,
+                )
+            except Exception:
+                pass
+
     return node
 
 
@@ -102,6 +115,19 @@ async def process_collector_failure(
 
         await db.commit()
         await db.refresh(node)
+
+        if node.review_status == ReviewStatus.APPROVED and node.lifecycle_status == LifecycleStatus.ACTIVE:
+            try:
+                from services.status_broadcaster import broadcast_node_status_change
+                await broadcast_node_status_change(
+                    node_id=str(node.id),
+                    name=node.name,
+                    node_type=node.type.value if hasattr(node.type, "value") else str(node.type),
+                    status=node.status.value if hasattr(node.status, "value") else str(node.status),
+                    last_seen=node.last_seen.isoformat() if node.last_seen else None,
+                )
+            except Exception:
+                pass
 
     return node
 

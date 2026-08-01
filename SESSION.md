@@ -250,4 +250,13 @@ Jika pengguna meminta modifikasi, penambahan fitur baru, atau perbaikan kode di 
 - **Hasil Verifikasi**:
   - `backend\.venv\Scripts\pytest.exe backend/tests` → **42 Passed / 0 Failed (100% Pass)**.
 
+### Modul R3 — WebSocket Live Delta (2 Agustus 2026)
+- **Problem**: Perubahan status node hasil polling collector belum memancarkan `StatusDeltaMessage` secara langsung ke WebSocket clients.
+- **Solusi**:
+  1. `collector_service.py` dihubungkan ke `broadcast_node_status_change()` pada fungsi `process_collector_success` dan `process_collector_failure`.
+  2. Memastikan delta terenkapsulasi aman (hanya berisi identity node, status, last_seen, timestamp).
+- **Hasil Verifikasi**:
+  - `backend\.venv\Scripts\pytest.exe backend/tests` → **42 Passed / 0 Failed (100% Pass)**.
+
+
 
