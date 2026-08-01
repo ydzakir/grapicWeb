@@ -80,7 +80,7 @@ async def build_topology_graph(
                 os=node.os,
                 cpu_cores=node.cpu_cores,
                 ram_mb=node.ram_mb,
-                disk_gb=node.disk_gb,
+                disk_gb=float(node.disk_gb) if node.disk_gb is not None else None,
                 metadata=sanitize_metadata(node.metadata_),
             )
         )

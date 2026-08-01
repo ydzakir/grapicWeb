@@ -2,7 +2,8 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from decimal import Decimal
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from models.node import ConnectionType, LifecycleStatus, NodeStatus, NodeType, ReviewStatus
 
@@ -17,6 +18,24 @@ class NodeBase(BaseModel):
     disk_gb: float | None = Field(None, ge=0)
     ip_address: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict, validation_alias="metadata_")
+
+    @field_validator("disk_gb", mode="before")
+    @classmethod
+    def convert_disk_gb(cls, v: Any) -> float | None:
+        if v is None:
+            return None
+        if isinstance(v, (Decimal, int, float, str)):
+            return float(v)
+        return v
+
+    @field_validator("metadata", mode="before")
+    @classmethod
+    def convert_metadata(cls, v: Any) -> dict[str, Any]:
+        if v is None:
+            return {}
+        if isinstance(v, dict):
+            return v
+        return {}
 
 
 class NodeCreate(NodeBase):
@@ -124,6 +143,24 @@ class TopologyNodeResponse(BaseModel):
     ram_mb: int | None = None
     disk_gb: float | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("disk_gb", mode="before")
+    @classmethod
+    def convert_disk_gb(cls, v: Any) -> float | None:
+        if v is None:
+            return None
+        if isinstance(v, (Decimal, int, float, str)):
+            return float(v)
+        return v
+
+    @field_validator("metadata", mode="before")
+    @classmethod
+    def convert_metadata(cls, v: Any) -> dict[str, Any]:
+        if v is None:
+            return {}
+        if isinstance(v, dict):
+            return v
+        return {}
 
 
 class TopologyEdgeResponse(BaseModel):
